@@ -64,7 +64,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
             className="hidden lg:inline-block h-4 w-px bg-slate-200"
           />
           <span className="hidden lg:inline text-xs font-medium text-slate-500 whitespace-nowrap">
-            تقارير الفروض · مذكرة التقويم
+            تقارير الفروض · المذكرة 142-08 · الرياضيات
           </span>
         </button>
 

@@ -13,6 +13,8 @@ import {
   Printer,
   SlidersHorizontal,
   Trash2,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import {
   ArchivedClassProject,
@@ -383,9 +385,18 @@ export const ReportPreviewStep: React.FC<ReportPreviewStepProps> = ({
           <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-1">
             <button
               type="button"
+              onClick={() => setZoom((z) => Math.max(0.4, Math.round((z - 0.1) * 100) / 100))}
+              title="تصغير المعاينة"
+              aria-label="تصغير المعاينة"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-white hover:text-slate-900 cursor-pointer"
+            >
+              <ZoomOut className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
               onClick={() => setZoom(computeIdealZoom())}
               title="ملاءمة حجم العرض مع الشاشة"
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-slate-600 transition-colors hover:text-slate-900 cursor-pointer"
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-slate-600 transition-colors hover:bg-white hover:text-slate-900 cursor-pointer"
             >
               <Maximize2 className="h-3 w-3" />
               <span>ملاءمة</span>
@@ -409,6 +420,15 @@ export const ReportPreviewStep: React.FC<ReportPreviewStepProps> = ({
                 {z.label}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => setZoom((z) => Math.min(1.25, Math.round((z + 0.1) * 100) / 100))}
+              title="تكبير المعاينة"
+              aria-label="تكبير المعاينة"
+              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-600 transition-colors hover:bg-white hover:text-slate-900 cursor-pointer"
+            >
+              <ZoomIn className="h-3.5 w-3.5" />
+            </button>
           </div>
 
           {onUpdateExamAttachment && (

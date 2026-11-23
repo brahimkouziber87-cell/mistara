@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   BookMarked,
@@ -66,6 +66,15 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
     loadCheckedDocs()
   );
   const [appliedNotice, setAppliedNotice] = useState<string | null>(null);
+  const noticeTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (noticeTimerRef.current !== null) {
+        window.clearTimeout(noticeTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!isManualTrack) {
@@ -116,30 +125,40 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
         ...prev.headerConfig,
         ministryLine: 'وزارة التربية الوطنية والتعليم الأولي والتكوين المهني والتأهيل',
         reportSubtitle:
-          'تقرير إحصائي وتشخيصي لنتائج الفرض المحروس وفق مذكرة التقويم (الرياضيات)',
+          'تقرير إحصائي وتشخيصي لنتائج الفرض المحروس وفق المذكرة الوزارية 142-08 (الرياضيات)',
       },
     }));
     setAppliedNotice(
-      `تم ضبط المدة (${activeTrack.officialDuration})، الوزن (${activeTrack.singleExamWeightLabel})، وجدول التخصيص وفق مذكرة التقويم لمسلك ${activeTrack.shortCode}.`
+      `تم ضبط المدة (${activeTrack.officialDuration})، الوزن (${activeTrack.singleExamWeightLabel})، وجدول التخصيص وفق المذكرة 142-08 لمسلك ${activeTrack.shortCode}.`
     );
-    window.setTimeout(() => setAppliedNotice(null), 3500);
+    if (noticeTimerRef.current !== null) {
+      window.clearTimeout(noticeTimerRef.current);
+    }
+    noticeTimerRef.current = window.setTimeout(() => {
+      setAppliedNotice(null);
+      noticeTimerRef.current = null;
+    }, 3500);
   };
+
+  const docsProgressPct = Math.round(
+    (checkedDocsCount / Math.max(1, MATH_TEACHER_OFFICIAL_DOCS.length)) * 100
+  );
 
   return (
     <section
-      aria-label="مُضبِط ومدقّق مذكرة التقويم للرياضيات"
+      aria-label="مُضبِط ومدقّق المذكرة الوزارية 142-08 للرياضيات"
       className="rounded-xl border border-slate-200 bg-white overflow-hidden"
     >
       {/* Header Row */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 bg-slate-50/70 px-5 py-3.5">
         <div className="flex items-start gap-3 min-w-0">
-          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-teal-700">
+          <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-teal-200 bg-teal-50/70 text-teal-800">
             <Scale className="h-4.5 w-4.5" />
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-sm sm:text-base font-bold text-slate-900">
-                مُضبِط ومدقّق مذكرة التقويم (الرياضيات — الثانوي التأهيلي)
+                مُضبِط ومدقّق المذكرة الوزارية 142-08 (الرياضيات — الثانوي التأهيلي)
               </h2>
               <span
                 className={`inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[11px] font-bold tabular-nums ${
@@ -155,10 +174,10 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
               <span>{activeTrack.label}</span>
               <span aria-hidden="true"> · </span>
               <span className="font-mono tabular-nums">
-                {activeTrack.examsPerSemester} فروض/دورة
+                {activeTrack.examsPerSemester} فروض محروسة + {activeTrack.homeworksPerSemester} منزلية/دورة
               </span>
               <span aria-hidden="true"> · </span>
-              <span>المدة القانونية: {activeTrack.officialDuration}</span>
+              <span>المدة: {activeTrack.officialDuration}</span>
               <span aria-hidden="true"> · </span>
               <span className="font-mono tabular-nums">100% فروض محروسة</span>
             </p>
@@ -171,7 +190,7 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
             onClick={() => setIsExpanded((v) => !v)}
             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 whitespace-nowrap cursor-pointer"
           >
-            <span>{isExpanded ? 'طي المدقّق' : 'فتح مدقّق مذكرة التقويم'}</span>
+            <span>{isExpanded ? 'طي المدقّق' : 'فتح مدقّق المذكرة 142-08'}</span>
             {isExpanded ? (
               <ChevronUp className="h-3.5 w-3.5" />
             ) : (
@@ -243,18 +262,18 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
           {/* 4-Column Hairline Official Spec Strip */}
           <div className="grid grid-cols-2 divide-y sm:divide-y-0 sm:divide-x sm:divide-x-reverse divide-slate-200 rounded-lg border border-slate-200 bg-slate-50/60 lg:grid-cols-4">
             <div className="px-4 py-3">
-              <div className="text-[11px] font-semibold text-slate-500">عدد الفروض والمدة</div>
+              <div className="text-[11px] font-semibold text-slate-500">الفروض المحروسة والمنزلية</div>
               <div className="mt-1 font-mono text-sm font-bold text-slate-900 tabular-nums">
-                {activeTrack.examsPerSemester} فروض · {activeTrack.officialDuration}
+                {activeTrack.examsPerSemester} محروسة · {activeTrack.officialDuration}
               </div>
               <div className="mt-0.5 text-[11px] text-slate-500">
-                الغلاف الأسبوعي: {activeTrack.weeklyHours}
+                + {activeTrack.homeworksPerSemester} فروض منزلية · الغلاف: {activeTrack.weeklyHours}
               </div>
             </div>
 
             <div className="px-4 py-3">
               <div className="text-[11px] font-semibold text-slate-500">
-                توزيع المراقبة المستمرة
+                توزيع المراقبة المستمرة (142-08)
               </div>
               <div className="mt-1 font-mono text-sm font-bold text-teal-800 tabular-nums">
                 {activeTrack.supervisedWeightPct}% فروض محروسة
@@ -274,7 +293,24 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
                 {activeTrack.taxonomyBreakdown.familiarSituationsPct}% ·{' '}
                 {activeTrack.taxonomyBreakdown.complexProblemsPct}%
               </div>
-              <div className="mt-0.5 text-[11px] text-slate-500">
+              <div
+                className="mt-1.5 flex h-1.5 w-full overflow-hidden rounded-full bg-slate-200"
+                title="تطبيق مباشر · وضعيات مألوفة · مسائل مركبة"
+              >
+                <div
+                  className="bg-teal-600"
+                  style={{ width: `${activeTrack.taxonomyBreakdown.directApplicationPct}%` }}
+                />
+                <div
+                  className="bg-sky-500"
+                  style={{ width: `${activeTrack.taxonomyBreakdown.familiarSituationsPct}%` }}
+                />
+                <div
+                  className="bg-amber-500"
+                  style={{ width: `${activeTrack.taxonomyBreakdown.complexProblemsPct}%` }}
+                />
+              </div>
+              <div className="mt-1 text-[10.5px] text-slate-500">
                 تطبيق مباشر · وضعيات مألوفة · مسائل مركبة
               </div>
             </div>
@@ -288,8 +324,10 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
                 {audit.turnaroundDays !== null ? (
                   <span
                     className={
-                      audit.turnaroundDays >= 0 && audit.turnaroundDays <= 14
+                      audit.turnaroundDays >= 0 && audit.turnaroundDays <= 7
                         ? 'text-emerald-700'
+                        : audit.turnaroundDays <= 14
+                        ? 'text-teal-700'
                         : 'text-amber-700'
                     }
                   >
@@ -300,7 +338,7 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
                 )}
               </div>
               <div className="mt-0.5 text-[11px] text-slate-500">
-                الموصى به في المذكرة: ≤ 14 يوماً
+                المذكرة 142-08: الأسبوع الموالي (≤ 7 أيام)
               </div>
             </div>
           </div>
@@ -365,8 +403,14 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
                   <span>قائمة الوثائق التربوية المرجعية لأستاذ الرياضيات بالتأهيلي</span>
                 </div>
                 <span className="font-mono text-[11px] font-semibold text-teal-800 tabular-nums">
-                  {checkedDocsCount} / {MATH_TEACHER_OFFICIAL_DOCS.length} مستوفاة
+                  {checkedDocsCount} / {MATH_TEACHER_OFFICIAL_DOCS.length} مستوفاة ({docsProgressPct}%)
                 </span>
+              </div>
+              <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                <div
+                  className="h-full rounded-full bg-teal-600 transition-all duration-300"
+                  style={{ width: `${docsProgressPct}%` }}
+                />
               </div>
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {MATH_TEACHER_OFFICIAL_DOCS.map((doc) => {

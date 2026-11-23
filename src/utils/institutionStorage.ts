@@ -536,12 +536,7 @@ export function loadWorkspaceDraft(): WorkspaceDraft | null {
     const rawTpl = parsed.template;
     let template = baseTpl;
     if (rawTpl && typeof rawTpl === 'object') {
-      const migrateLegacyText = (text: string) =>
-        migrateLegacyMinistryLine(text)
-          .replace(/للمذكرة الوزارية(?:\s*رقم)?\s*142(?:[-/]08)?/g, 'لمذكرة التقويم')
-          .replace(/المذكرة الوزارية(?:\s*رقم)?\s*142(?:[-/]08)?/g, 'مذكرة التقويم')
-          .replace(/المذكرة\s*142(?:[-/]08)?/g, 'مذكرة التقويم')
-          .replace(/142[-/]08/g, 'مذكرة التقويم');
+      const migrateLegacyText = (text: string) => migrateLegacyMinistryLine(text);
 
       const filteredSections = Array.isArray(rawTpl.sections)
         ? rawTpl.sections

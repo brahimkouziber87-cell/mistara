@@ -56,7 +56,7 @@ interface MassarImportStepProps {
   onNextStep: () => void;
 }
 
-type FilterMode = 'all' | 'present' | 'passed' | 'struggling' | 'absent';
+type FilterMode = 'all' | 'present' | 'passed' | 'struggling' | 'absent' | 'unscored';
 
 const AUTO_LOAD_STORAGE_KEY = 'mistara_auto_load_files_v1';
 
@@ -248,6 +248,7 @@ export const MassarImportStep: React.FC<MassarImportStepProps> = ({
 
       if (filterMode === 'present') return !st.isAbsent && st.score !== null;
       if (filterMode === 'absent') return st.isAbsent;
+      if (filterMode === 'unscored') return !st.isAbsent && st.score === null;
       if (filterMode === 'passed')
         return !st.isAbsent && st.score !== null && st.score >= passThreshold;
       if (filterMode === 'struggling')
@@ -1264,6 +1265,9 @@ export const MassarImportStep: React.FC<MassarImportStepProps> = ({
                   { id: 'passed', label: `المعدل (${stats.passed})` },
                   { id: 'struggling', label: `المتعثرون (${stats.failed})` },
                   { id: 'absent', label: `الغائبون (${stats.absent})` },
+                  ...(unscoredPresentCount > 0
+                    ? [{ id: 'unscored' as FilterMode, label: `بانتظار النقطة (${unscoredPresentCount})` }]
+                    : []),
                 ] as { id: FilterMode; label: string }[]
               ).map((tab) => (
                 <button
@@ -1272,7 +1276,11 @@ export const MassarImportStep: React.FC<MassarImportStepProps> = ({
                   onClick={() => setFilterMode(tab.id)}
                   className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                     filterMode === tab.id
-                      ? 'bg-white text-slate-900 shadow-sm'
+                      ? tab.id === 'unscored'
+                        ? 'bg-amber-600 text-white shadow-sm'
+                        : 'bg-white text-slate-900 shadow-sm'
+                      : tab.id === 'unscored'
+                      ? 'text-amber-800 hover:bg-amber-100/70'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
