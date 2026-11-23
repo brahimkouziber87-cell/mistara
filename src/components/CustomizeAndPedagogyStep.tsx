@@ -210,6 +210,9 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
         headerConfig: {
           ...prev.headerConfig,
           ...(result.templatePatch.headerConfig || {}),
+          teacherSignatureMode: prev.headerConfig.teacherSignatureMode,
+          teacherSignatureText: prev.headerConfig.teacherSignatureText,
+          teacherSignatureImage: prev.headerConfig.teacherSignatureImage,
         },
         pedagogicalContent: prev.pedagogicalContent,
         remediationCardsConfig: prev.remediationCardsConfig,

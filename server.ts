@@ -30,6 +30,7 @@ const GEMINI_MODEL_CANDIDATES = [
   process.env.GEMINI_MODEL,
   'gemini-4-hydrogen',
   'gemini-3.1-flash-lite',
+  'gemini-2.5-flash',
 ].filter((m): m is string => Boolean(m && m.trim()));
 
 async function generateWithFallback(
