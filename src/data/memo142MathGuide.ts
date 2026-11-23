@@ -3,28 +3,44 @@ import { ComputedStats, MassarMetadata, ReportTemplateSchema } from '../types/re
 export type MathTrackId =
   | 'tcs'
   | 'tclsh'
+  | 'tco'
   | '1bac-sm'
   | '1bac-se'
   | '1bac-eco'
+  | '1bac-aa'
   | '1bac-lsh'
+  | '1bac-ori'
   | '2bac-sm'
   | '2bac-pc-svt'
   | '2bac-eco'
-  | '2bac-lsh';
+  | '2bac-aa'
+  | '2bac-lsh'
+  | '2bac-ori'
+  | 'bac-pro';
+
+export type MathLevelGroup =
+  | 'الجذع المشترك'
+  | 'الأولى بكالوريا'
+  | 'الثانية بكالوريا'
+  | 'البكالوريا المهنية';
 
 export interface Memo142MathTrackSpec {
   id: MathTrackId;
+  levelGroup: MathLevelGroup;
   shortCode: string;
   label: string;
   levelLabel: string;
   examsPerSemester: number;
+  annualExamsTotal: number;
   homeworksPerSemester: number;
   officialDuration: string;
   durationMinutes: number;
+  annualExamHours: number;
   supervisedWeightPct: number;
   singleExamWeightLabel: string;
-  subjectCoefficient: number;
+  subjectCoefficient: number | string;
   weeklyHours: string;
+  assessmentNature: string;
   taxonomyBreakdown: {
     directApplicationPct: number;
     familiarSituationsPct: number;
@@ -35,6 +51,33 @@ export interface Memo142MathTrackSpec {
   keySyllabusHighlights: string;
 }
 
+export const MEMO_142_CORE_RULES: { id: string; title: string; detail: string }[] = [
+  {
+    id: 'rule-cc-100',
+    title: 'المراقبة المستمرة (100% فروض محروسة)',
+    detail:
+      'يُحتسب معدل المراقبة المستمرة حصرياً بناءً على نقط الفروض المحروسة داخل القسم (لا توجد أنشطة مندمجة محتسبة في المعدل).',
+  },
+  {
+    id: 'rule-notice-7d',
+    title: 'الإخبار المسبق للتلاميذ',
+    detail:
+      'يُخبر التلاميذ بموعد الفرض المحروس ومحتواه المعرفي قبل إجرائه بأسبوع على الأقل.',
+  },
+  {
+    id: 'rule-return-14d',
+    title: 'التصحيح وإرجاع أوراق التحرير',
+    detail:
+      'تُرجع أوراق التحرير وتُصحح في القسم في أجل لا يتعدى أسبوعين (≤ 14 يوماً) من تاريخ إجراء الفرض.',
+  },
+  {
+    id: 'rule-bac-pro',
+    title: 'مسالك البكالوريا المهنية',
+    detail:
+      'يتراوح المعامل بين 2 و 4 والغلاف الزمني الأسبوعي بين 2 و 4 ساعات حسب البطاقة التقنية لكل مسلك.',
+  },
+];
+
 /**
  * المرجعية التربوية الرسمية لمادة الرياضيات بسلك التعليم الثانوي التأهيلي
  * وفق المذكرة الوزارية رقم 142-08 (بتاريخ 16 نونبر 2007) والتوجيهات التربوية والبرامج
@@ -42,17 +85,21 @@ export interface Memo142MathTrackSpec {
 export const MEMO_142_MATH_TRACKS: Memo142MathTrackSpec[] = [
   {
     id: 'tcs',
-    shortCode: 'TCS / TCSF',
-    label: 'الجذع المشترك العلمي والتكنولوجي',
+    levelGroup: 'الجذع المشترك',
+    shortCode: 'TCS / TCT',
+    label: 'الجذع المشترك العلمي (TCS) والتكنولوجي (TCT)',
     levelLabel: 'الجذع المشترك العلمي',
     examsPerSemester: 3,
+    annualExamsTotal: 6,
     homeworksPerSemester: 3,
     officialDuration: 'ساعتان (2h)',
     durationMinutes: 120,
+    annualExamHours: 12,
     supervisedWeightPct: 100,
     singleExamWeightLabel: '33.33%',
     subjectCoefficient: 4,
-    weeklyHours: '5 ساعات',
+    weeklyHours: '5 ساعات (2س + 2س + 1س)',
+    assessmentNature: 'مراقبة مستمرة طيلة السنة',
     taxonomyBreakdown: {
       directApplicationPct: 40,
       familiarSituationsPct: 40,
@@ -61,23 +108,27 @@ export const MEMO_142_MATH_TRACKS: Memo142MathTrackSpec[] = [
     examCriteriaTemplate:
       '40% تطبيق مباشر للمعارف والخاصيات · 40% استحضار وتوظيف مهارات في وضعيات مألوفة · 20% وضعيات مركبة وحل مسائل (المذكرة 142-08).',
     gradingScaleTemplate:
-      'التنقيط على 20 وفق المذكرة 142-08: 3 فروض محروسة في الدورة بوزن متساوٍ (33.33% لكل فرض · 100% فروض محروسة) + 3 فروض منزلية تكوينية.',
+      'التنقيط على 20 وفق المذكرة 142-08: 3 فروض محروسة في الدورة بوزن متساوٍ (33.33% لكل فرض · 100% فروض محروسة).',
     keySyllabusHighlights:
       'الحسابيات في IN · الحساب المتجهي والإسقاط · المجموعات والترتيب في IR · الحدوديات والمعادلات · الحساب المثلثي · الدوال العددية · الهندسة الفضائية.',
   },
   {
     id: 'tclsh',
+    levelGroup: 'الجذع المشترك',
     shortCode: 'TCLSH',
-    label: 'الجذع المشترك للآداب والعلوم الإنسانية',
+    label: 'الجذع المشترك للآداب والعلوم الإنسانية (TCLSH)',
     levelLabel: 'الجذع المشترك للآداب والعلوم الإنسانية',
     examsPerSemester: 2,
+    annualExamsTotal: 4,
     homeworksPerSemester: 2,
     officialDuration: 'ساعة واحدة (1h)',
     durationMinutes: 60,
+    annualExamHours: 4,
     supervisedWeightPct: 100,
     singleExamWeightLabel: '50%',
     subjectCoefficient: 2,
-    weeklyHours: 'ساعتان',
+    weeklyHours: 'ساعتان (2س أو 1س + 1س)',
+    assessmentNature: 'مراقبة مستمرة طيلة السنة',
     taxonomyBreakdown: {
       directApplicationPct: 45,
       familiarSituationsPct: 40,
@@ -86,23 +137,56 @@ export const MEMO_142_MATH_TRACKS: Memo142MathTrackSpec[] = [
     examCriteriaTemplate:
       '45% تطبيق مباشر لقواعد الحساب والمعادلات · 40% توظيف في وضعيات مألوفة · 15% ترييض مسألة بسيطة (المذكرة 142-08).',
     gradingScaleTemplate:
-      'التنقيط على 20 وفق المذكرة 142-08: فرضان محروسان في الدورة بوزن متساوٍ (50% لكل فرض · 100% فروض محروسة) + فرضان منزليان تكوينيان.',
+      'التنقيط على 20 وفق المذكرة 142-08: فرضان محروسان في الدورة بوزن متساوٍ (50% لكل فرض · 100% فروض محروسة).',
+    keySyllabusHighlights:
+      'الحساب العددي والتناسبية والنسب المئوية · المعادلات والمتراجحات والنظمات · الإحصاء الوصفي · المستقيم في المستوى · عموميات حول الدوال.',
+  },
+  {
+    id: 'tco',
+    levelGroup: 'الجذع المشترك',
+    shortCode: 'TCO',
+    label: 'الجذع المشترك للتعليم الأصيل (TCO)',
+    levelLabel: 'الجذع المشترك للتعليم الأصيل',
+    examsPerSemester: 2,
+    annualExamsTotal: 4,
+    homeworksPerSemester: 2,
+    officialDuration: 'ساعة واحدة (1h)',
+    durationMinutes: 60,
+    annualExamHours: 4,
+    supervisedWeightPct: 100,
+    singleExamWeightLabel: '50%',
+    subjectCoefficient: 2,
+    weeklyHours: 'ساعتان (2س أو 1س + 1س)',
+    assessmentNature: 'مراقبة مستمرة طيلة السنة',
+    taxonomyBreakdown: {
+      directApplicationPct: 45,
+      familiarSituationsPct: 40,
+      complexProblemsPct: 15,
+    },
+    examCriteriaTemplate:
+      '45% تطبيق مباشر لقواعد الحساب والمعادلات · 40% توظيف في وضعيات مألوفة · 15% ترييض مسألة بسيطة (المذكرة 142-08).',
+    gradingScaleTemplate:
+      'التنقيط على 20 وفق المذكرة 142-08: فرضان محروسان في الدورة بوزن متساوٍ (50% لكل فرض · 100% فروض محروسة).',
     keySyllabusHighlights:
       'الحساب العددي والتناسبية والنسب المئوية · المعادلات والمتراجحات والنظمات · الإحصاء الوصفي · المستقيم في المستوى · عموميات حول الدوال.',
   },
   {
     id: '1bac-sm',
+    levelGroup: 'الأولى بكالوريا',
     shortCode: '1BAC SM',
-    label: 'الأولى بكالوريا علوم رياضية',
+    label: 'الأولى بكالوريا علوم رياضية (خيار فرنسية / عربية)',
     levelLabel: 'الأولى بكالوريا علوم رياضية',
     examsPerSemester: 4,
+    annualExamsTotal: 8,
     homeworksPerSemester: 3,
     officialDuration: 'ساعتان (2h)',
     durationMinutes: 120,
+    annualExamHours: 16,
     supervisedWeightPct: 100,
     singleExamWeightLabel: '25%',
     subjectCoefficient: 9,
     weeklyHours: '7 ساعات',
+    assessmentNature: 'مراقبة مستمرة فقط (تُمتحن وطنياً في الثانية باك)',
     taxonomyBreakdown: {
       directApplicationPct: 30,
       familiarSituationsPct: 50,
@@ -111,23 +195,27 @@ export const MEMO_142_MATH_TRACKS: Memo142MathTrackSpec[] = [
     examCriteriaTemplate:
       '30% تطبيق مباشر للتعاريف والخاصيات · 50% استدلال رياضي وتوظيف مبرهنات في وضعيات مألوفة · 20% وضعيات غير مألوفة ومسائل توليفية (المذكرة 142-08).',
     gradingScaleTemplate:
-      'التنقيط على 20 وفق المذكرة 142-08: 4 فروض محروسة في الدورة بوزن متساوٍ (25% لكل فرض · 100% فروض محروسة) + 3 فروض منزلية تكوينية.',
+      'التنقيط على 20 وفق المذكرة 142-08: 4 فروض محروسة في الدورة بوزن متساوٍ (25% لكل فرض · 100% فروض محروسة).',
     keySyllabusHighlights:
       'مبادئ في المنطق · المجموعات والتطبيقات · عموميات حول الدوال · المرجح والجداء السلمي · المتتاليات · الحسابيات في Z · النهايات والاشتقاق · الدوران والتعداد.',
   },
   {
     id: '1bac-se',
-    shortCode: '1BAC SE',
-    label: 'الأولى بكالوريا علوم تجريبية / تكنولوجيات',
+    levelGroup: 'الأولى بكالوريا',
+    shortCode: '1BAC SE / STE / STM',
+    label: 'الأولى بكالوريا علوم تجريبية / علوم وتكنولوجيات (ميكانيكية وكهربائية)',
     levelLabel: 'الأولى بكالوريا علوم تجريبية',
     examsPerSemester: 3,
+    annualExamsTotal: 6,
     homeworksPerSemester: 3,
     officialDuration: 'ساعتان (2h)',
     durationMinutes: 120,
+    annualExamHours: 12,
     supervisedWeightPct: 100,
     singleExamWeightLabel: '33.33%',
     subjectCoefficient: 7,
     weeklyHours: '5 ساعات',
+    assessmentNature: 'مراقبة مستمرة فقط (تُمتحن وطنياً في الثانية باك)',
     taxonomyBreakdown: {
       directApplicationPct: 35,
       familiarSituationsPct: 45,
@@ -136,23 +224,27 @@ export const MEMO_142_MATH_TRACKS: Memo142MathTrackSpec[] = [
     examCriteriaTemplate:
       '35% تطبيق مباشر للمعارف والتقنيات · 45% توظيف في وضعيات مألوفة · 20% مسائل توليفية وتأويل مبياني (المذكرة 142-08).',
     gradingScaleTemplate:
-      'التنقيط على 20 وفق المذكرة 142-08: 3 فروض محروسة في الدورة بوزن متساوٍ (33.33% لكل فرض · 100% فروض محروسة) + 3 فروض منزلية تكوينية.',
+      'التنقيط على 20 وفق المذكرة 142-08: 3 فروض محروسة في الدورة بوزن متساوٍ (33.33% لكل فرض · 100% فروض محروسة).',
     keySyllabusHighlights:
       'مبادئ في المنطق · عموميات حول الدوال · المتتاليات العددية · المرجح والجداء السلمي · الحساب المثلثي · النهايات والاشتقاق ودراسة الدوال · الهندسة الفضائية.',
   },
   {
     id: '1bac-eco',
+    levelGroup: 'الأولى بكالوريا',
     shortCode: '1BAC ECO',
     label: 'الأولى بكالوريا علوم اقتصادية وتدبير',
     levelLabel: 'الأولى بكالوريا علوم اقتصادية وتدبير',
     examsPerSemester: 3,
+    annualExamsTotal: 6,
     homeworksPerSemester: 3,
     officialDuration: 'ساعتان (2h)',
     durationMinutes: 120,
+    annualExamHours: 12,
     supervisedWeightPct: 100,
     singleExamWeightLabel: '33.33%',
     subjectCoefficient: 4,
     weeklyHours: '4 ساعات',
+    assessmentNature: 'مراقبة مستمرة فقط (تُمتحن وطنياً في الثانية باك)',
     taxonomyBreakdown: {
       directApplicationPct: 40,
       familiarSituationsPct: 45,
@@ -161,23 +253,56 @@ export const MEMO_142_MATH_TRACKS: Memo142MathTrackSpec[] = [
     examCriteriaTemplate:
       '40% تطبيق مباشر للتقنيات الجبرية والتحليلية · 45% توظيف في وضعيات اقتصادية ومألوفة · 15% مسائل تركيبية (المذكرة 142-08).',
     gradingScaleTemplate:
-      'التنقيط على 20 وفق المذكرة 142-08: 3 فروض محروسة في الدورة بوزن متساوٍ (33.33% لكل فرض · 100% فروض محروسة) + 3 فروض منزلية تكوينية.',
+      'التنقيط على 20 وفق المذكرة 142-08: 3 فروض محروسة في الدورة بوزن متساوٍ (33.33% لكل فرض · 100% فروض محروسة).',
     keySyllabusHighlights:
       'مبادئ في المنطق · المعادلات والمتراجحات والنظمات · عموميات حول الدوال · المتتاليات · التعداد · النهايات والاشتقاق · الدالة اللوغاريتمية العشرية.',
   },
   {
-    id: '1bac-lsh',
-    shortCode: '1BAC LSH',
-    label: 'الأولى بكالوريا آداب وعلوم إنسانية (جهوي)',
-    levelLabel: 'الأولى بكالوريا آداب وعلوم إنسانية',
-    examsPerSemester: 2,
+    id: '1bac-aa',
+    levelGroup: 'الأولى بكالوريا',
+    shortCode: '1BAC AA',
+    label: 'الأولى بكالوريا الفنون التطبيقية',
+    levelLabel: 'الأولى بكالوريا الفنون التطبيقية',
+    examsPerSemester: 3,
+    annualExamsTotal: 6,
     homeworksPerSemester: 2,
     officialDuration: 'ساعة واحدة (1h)',
     durationMinutes: 60,
+    annualExamHours: 6,
+    supervisedWeightPct: 100,
+    singleExamWeightLabel: '33.33%',
+    subjectCoefficient: 4,
+    weeklyHours: '3 ساعات',
+    assessmentNature: 'مراقبة مستمرة فقط (تُمتحن وطنياً في الثانية باك)',
+    taxonomyBreakdown: {
+      directApplicationPct: 40,
+      familiarSituationsPct: 45,
+      complexProblemsPct: 15,
+    },
+    examCriteriaTemplate:
+      '40% تطبيق مباشر للمعارف والتقنيات · 45% توظيف في وضعيات هندسية وتحليلية مألوفة · 15% مسائل تطبيقية (المذكرة 142-08).',
+    gradingScaleTemplate:
+      'التنقيط على 20 وفق المذكرة 142-08: 3 فروض محروسة في الدورة بمدة ساعة واحدة وبوزن متساوٍ (33.33% لكل فرض · 100% فروض محروسة).',
+    keySyllabusHighlights:
+      'مبادئ في المنطق · الحساب المثلثي · الهندسة التحليلية والتحويلات الهندسية · المتتاليات العددية · النهايات والاشتقاق ودراسة الدوال.',
+  },
+  {
+    id: '1bac-lsh',
+    levelGroup: 'الأولى بكالوريا',
+    shortCode: '1BAC LSH',
+    label: 'الأولى بكالوريا آداب وعلوم إنسانية',
+    levelLabel: 'الأولى بكالوريا آداب وعلوم إنسانية',
+    examsPerSemester: 2,
+    annualExamsTotal: 4,
+    homeworksPerSemester: 2,
+    officialDuration: 'ساعة واحدة (1h)',
+    durationMinutes: 60,
+    annualExamHours: 4,
     supervisedWeightPct: 100,
     singleExamWeightLabel: '50%',
     subjectCoefficient: 1,
     weeklyHours: 'ساعتان',
+    assessmentNature: 'امتحان جهوي موحد + مراقبة مستمرة',
     taxonomyBreakdown: {
       directApplicationPct: 45,
       familiarSituationsPct: 40,
@@ -186,23 +311,56 @@ export const MEMO_142_MATH_TRACKS: Memo142MathTrackSpec[] = [
     examCriteriaTemplate:
       '45% تطبيق مباشر وفق الإطار المرجعي للامتحان الجهوي · 40% توظيف في وضعيات مألوفة · 15% ترييض مسألة (المذكرة 142-08).',
     gradingScaleTemplate:
-      'التنقيط على 20 وفق المذكرة 142-08: فرضان محروسان في الدورة بوزن متساوٍ (50% لكل فرض · 100% فروض محروسة) + فرضان منزليان مع تحضير للجهوي.',
+      'التنقيط على 20 وفق المذكرة 142-08: فرضان محروسان في الدورة بوزن متساوٍ (50% لكل فرض · 100% فروض محروسة) مع تحضير للجهوي.',
+    keySyllabusHighlights:
+      'مبادئ في المنطق · الحساب العددي والنسب المئوية · المعادلات والنظمات · المتتاليات الحسابية والهندسية · التعداد · النهايات والاشتقاق.',
+  },
+  {
+    id: '1bac-ori',
+    levelGroup: 'الأولى بكالوريا',
+    shortCode: '1BAC ORI',
+    label: 'الأولى بكالوريا التعليم الأصيل (اللغة العربية / العلوم الشرعية)',
+    levelLabel: 'الأولى بكالوريا التعليم الأصيل',
+    examsPerSemester: 2,
+    annualExamsTotal: 4,
+    homeworksPerSemester: 2,
+    officialDuration: 'ساعة واحدة (1h)',
+    durationMinutes: 60,
+    annualExamHours: 4,
+    supervisedWeightPct: 100,
+    singleExamWeightLabel: '50%',
+    subjectCoefficient: 1,
+    weeklyHours: 'ساعتان',
+    assessmentNature: 'امتحان جهوي موحد + مراقبة مستمرة',
+    taxonomyBreakdown: {
+      directApplicationPct: 45,
+      familiarSituationsPct: 40,
+      complexProblemsPct: 15,
+    },
+    examCriteriaTemplate:
+      '45% تطبيق مباشر وفق الإطار المرجعي للامتحان الجهوي · 40% توظيف في وضعيات مألوفة · 15% ترييض مسألة (المذكرة 142-08).',
+    gradingScaleTemplate:
+      'التنقيط على 20 وفق المذكرة 142-08: فرضان محروسان في الدورة بوزن متساوٍ (50% لكل فرض · 100% فروض محروسة) مع تحضير للجهوي.',
     keySyllabusHighlights:
       'مبادئ في المنطق · الحساب العددي والنسب المئوية · المعادلات والنظمات · المتتاليات الحسابية والهندسية · التعداد · النهايات والاشتقاق.',
   },
   {
     id: '2bac-sm',
+    levelGroup: 'الثانية بكالوريا',
     shortCode: '2BAC SM',
-    label: 'الثانية بكالوريا علوم رياضية (أ / ب)',
+    label: 'الثانية بكالوريا علوم رياضية (أ) و (ب)',
     levelLabel: 'الثانية بكالوريا علوم رياضية',
     examsPerSemester: 4,
+    annualExamsTotal: 8,
     homeworksPerSemester: 3,
     officialDuration: 'ساعتان (2h)',
     durationMinutes: 120,
+    annualExamHours: 16,
     supervisedWeightPct: 100,
     singleExamWeightLabel: '25%',
     subjectCoefficient: 9,
     weeklyHours: '7 ساعات',
+    assessmentNature: 'امتحان وطني موحد + مراقبة مستمرة',
     taxonomyBreakdown: {
       directApplicationPct: 25,
       familiarSituationsPct: 50,
@@ -211,23 +369,27 @@ export const MEMO_142_MATH_TRACKS: Memo142MathTrackSpec[] = [
     examCriteriaTemplate:
       '25% تطبيق مباشر للقواعد والخاصيات · 50% استدلال وبراهين مألوفة وفق الإطار المرجعي للوطني · 25% مسائل مركبة وتوليفية (المذكرة 142-08).',
     gradingScaleTemplate:
-      'التنقيط على 20 وفق المذكرة 142-08: 4 فروض محروسة في الدورة بوزن متساوٍ (25% لكل فرض · 100% فروض محروسة) — مع إمكانية فرض تأليفي بـ 3h إلى 4h + فروض منزلية.',
+      'التنقيط على 20 وفق المذكرة 142-08: 4 فروض محروسة في الدورة بوزن متساوٍ (25% لكل فرض · 100% فروض محروسة) — مع إمكانية فرض تأليفي بـ 3h إلى 4h.',
     keySyllabusHighlights:
       'الاتصال ومبرهنة القيم الوسيطية · الاشتقاق ومبرهنة التزايدات المنتهية · المتتاليات · الدوال ln و exp · المعادلات التفاضلية · الأعداد العقدية · الحسابيات في Z · البنيات الجبرية · التكامل · الاحتمالات.',
   },
   {
     id: '2bac-pc-svt',
-    shortCode: '2BAC PC / SVT',
-    label: 'الثانية بكالوريا علوم فيزيائية / علوم الحياة والأرض',
+    levelGroup: 'الثانية بكالوريا',
+    shortCode: '2BAC PC / SVT / STM / STE',
+    label: 'الثانية بكالوريا علوم تجريبية (PC / SVT / الزراعية) وعلوم وتكنولوجيات (STM / STE)',
     levelLabel: 'الثانية بكالوريا علوم فيزيائية وعلوم الحياة والأرض',
     examsPerSemester: 3,
+    annualExamsTotal: 6,
     homeworksPerSemester: 3,
     officialDuration: 'ساعتان (2h)',
     durationMinutes: 120,
+    annualExamHours: 12,
     supervisedWeightPct: 100,
     singleExamWeightLabel: '33.33%',
     subjectCoefficient: 7,
     weeklyHours: '5 ساعات',
+    assessmentNature: 'امتحان وطني موحد + مراقبة مستمرة',
     taxonomyBreakdown: {
       directApplicationPct: 30,
       familiarSituationsPct: 50,
@@ -236,23 +398,27 @@ export const MEMO_142_MATH_TRACKS: Memo142MathTrackSpec[] = [
     examCriteriaTemplate:
       '30% تطبيق مباشر للقواعد والنهايات والمشتقات · 50% دراسة دوال ومتتاليات وعقدية وفق الإطار المرجعي للوطني · 20% مسائل تركيبية واستنتاجات مبيانية (المذكرة 142-08).',
     gradingScaleTemplate:
-      'التنقيط على 20 وفق المذكرة 142-08: 3 فروض محروسة في الدورة بوزن متساوٍ (33.33% لكل فرض · 100% فروض محروسة) + 3 فروض منزلية تكوينية.',
+      'التنقيط على 20 وفق المذكرة 142-08: 3 فروض محروسة في الدورة بوزن متساوٍ (33.33% لكل فرض · 100% فروض محروسة).',
     keySyllabusHighlights:
       'الاتصال والاشتقاق ودراسة الدوال · المتتاليات العددية · الدوال اللوغاريتمية والأسية · المعادلات التفاضلية · الأعداد العقدية · الهندسة الفضائية · التكامل · الاحتمالات.',
   },
   {
     id: '2bac-eco',
+    levelGroup: 'الثانية بكالوريا',
     shortCode: '2BAC ECO / SGC',
-    label: 'الثانية بكالوريا علوم اقتصادية / تدبير محاسباتي',
+    label: 'الثانية بكالوريا علوم اقتصادية / علوم التدبير المحاسباتي',
     levelLabel: 'الثانية بكالوريا علوم اقتصادية وتدبير',
     examsPerSemester: 3,
+    annualExamsTotal: 6,
     homeworksPerSemester: 3,
     officialDuration: 'ساعتان (2h)',
     durationMinutes: 120,
+    annualExamHours: 12,
     supervisedWeightPct: 100,
     singleExamWeightLabel: '33.33%',
     subjectCoefficient: 4,
     weeklyHours: '4 ساعات',
+    assessmentNature: 'امتحان وطني موحد + مراقبة مستمرة',
     taxonomyBreakdown: {
       directApplicationPct: 35,
       familiarSituationsPct: 45,
@@ -261,23 +427,56 @@ export const MEMO_142_MATH_TRACKS: Memo142MathTrackSpec[] = [
     examCriteriaTemplate:
       '35% تطبيق مباشر للمعارف · 45% دراسة دوال ومتتاليات واحتمالات وفق الإطار المرجعي للوطني · 20% مسائل تطبيقية (المذكرة 142-08).',
     gradingScaleTemplate:
-      'التنقيط على 20 وفق المذكرة 142-08: 3 فروض محروسة في الدورة بوزن متساوٍ (33.33% لكل فرض · 100% فروض محروسة) + 3 فروض منزلية تكوينية.',
+      'التنقيط على 20 وفق المذكرة 142-08: 3 فروض محروسة في الدورة بوزن متساوٍ (33.33% لكل فرض · 100% فروض محروسة).',
     keySyllabusHighlights:
       'الاتصال والاشتقاق · المتتاليات العددية · الدالة اللوغاريتمية والأسية · الدوال الأصلية والحساب التكاملي · حساب الاحتمالات والمتغير العشوائي.',
   },
   {
-    id: '2bac-lsh',
-    shortCode: '2BAC LSH',
-    label: 'الثانية بكالوريا آداب وعلوم إنسانية',
-    levelLabel: 'الثانية بكالوريا آداب وعلوم إنسانية',
-    examsPerSemester: 2,
+    id: '2bac-aa',
+    levelGroup: 'الثانية بكالوريا',
+    shortCode: '2BAC AA',
+    label: 'الثانية بكالوريا الفنون التطبيقية',
+    levelLabel: 'الثانية بكالوريا الفنون التطبيقية',
+    examsPerSemester: 3,
+    annualExamsTotal: 6,
     homeworksPerSemester: 2,
     officialDuration: 'ساعة واحدة (1h)',
     durationMinutes: 60,
+    annualExamHours: 6,
+    supervisedWeightPct: 100,
+    singleExamWeightLabel: '33.33%',
+    subjectCoefficient: 4,
+    weeklyHours: '3 ساعات',
+    assessmentNature: 'امتحان وطني موحد + مراقبة مستمرة',
+    taxonomyBreakdown: {
+      directApplicationPct: 35,
+      familiarSituationsPct: 45,
+      complexProblemsPct: 20,
+    },
+    examCriteriaTemplate:
+      '35% تطبيق مباشر · 45% دراسة دوال ومتتاليات وهندسة وفق الإطار المرجعي للوطني · 20% مسائل تركيبية (المذكرة 142-08).',
+    gradingScaleTemplate:
+      'التنقيط على 20 وفق المذكرة 142-08: 3 فروض محروسة في الدورة بمدة ساعة واحدة وبوزن متساوٍ (33.33% لكل فرض · 100% فروض محروسة).',
+    keySyllabusHighlights:
+      'الاتصال والاشتقاق ودراسة الدوال · المتتاليات العددية · الدالة اللوغاريتمية والأسية · الحساب التكاملي · الاحتمالات والهندسة.',
+  },
+  {
+    id: '2bac-lsh',
+    levelGroup: 'الثانية بكالوريا',
+    shortCode: '2BAC LSH',
+    label: 'الثانية بكالوريا آداب وعلوم إنسانية (مسلك الآداب / العلوم الإنسانية)',
+    levelLabel: 'الثانية بكالوريا آداب وعلوم إنسانية',
+    examsPerSemester: 2,
+    annualExamsTotal: 4,
+    homeworksPerSemester: 2,
+    officialDuration: 'ساعة واحدة (1h)',
+    durationMinutes: 60,
+    annualExamHours: 4,
     supervisedWeightPct: 100,
     singleExamWeightLabel: '50%',
     subjectCoefficient: 1,
     weeklyHours: 'ساعتان',
+    assessmentNature: 'مراقبة مستمرة فقط (اجتيزت جهوياً في الأولى باك)',
     taxonomyBreakdown: {
       directApplicationPct: 45,
       familiarSituationsPct: 40,
@@ -286,9 +485,67 @@ export const MEMO_142_MATH_TRACKS: Memo142MathTrackSpec[] = [
     examCriteriaTemplate:
       '45% تطبيق مباشر · 40% توظيف في وضعيات مألوفة · 15% تأويل واستنتاج (المذكرة 142-08).',
     gradingScaleTemplate:
-      'التنقيط على 20 وفق المذكرة 142-08: فرضان محروسان في الدورة بوزن متساوٍ (50% لكل فرض · 100% فروض محروسة) + فرضان منزليان تكوينيان.',
+      'التنقيط على 20 وفق المذكرة 142-08: فرضان محروسان في الدورة بوزن متساوٍ (50% لكل فرض · 100% فروض محروسة).',
     keySyllabusHighlights:
       'المتتاليات العددية · النهايات والاتصال · الاشتقاق ودراسة دوال حدودية ومتخاطة · الدالة اللوغاريتمية والأسية المبسطة · حساب الاحتمالات.',
+  },
+  {
+    id: '2bac-ori',
+    levelGroup: 'الثانية بكالوريا',
+    shortCode: '2BAC ORI',
+    label: 'الثانية بكالوريا التعليم الأصيل (مسلك اللغة العربية / العلوم الشرعية)',
+    levelLabel: 'الثانية بكالوريا التعليم الأصيل',
+    examsPerSemester: 2,
+    annualExamsTotal: 4,
+    homeworksPerSemester: 2,
+    officialDuration: 'ساعة واحدة (1h)',
+    durationMinutes: 60,
+    annualExamHours: 4,
+    supervisedWeightPct: 100,
+    singleExamWeightLabel: '50%',
+    subjectCoefficient: 1,
+    weeklyHours: 'ساعتان',
+    assessmentNature: 'مراقبة مستمرة فقط (اجتيزت جهوياً في الأولى باك)',
+    taxonomyBreakdown: {
+      directApplicationPct: 45,
+      familiarSituationsPct: 40,
+      complexProblemsPct: 15,
+    },
+    examCriteriaTemplate:
+      '45% تطبيق مباشر · 40% توظيف في وضعيات مألوفة · 15% تأويل واستنتاج (المذكرة 142-08).',
+    gradingScaleTemplate:
+      'التنقيط على 20 وفق المذكرة 142-08: فرضان محروسان في الدورة بوزن متساوٍ (50% لكل فرض · 100% فروض محروسة).',
+    keySyllabusHighlights:
+      'المتتاليات العددية · النهايات والاتصال · الاشتقاق ودراسة الدوال · الدالة اللوغاريتمية والأسية المبسطة · حساب الاحتمالات.',
+  },
+  {
+    id: 'bac-pro',
+    levelGroup: 'البكالوريا المهنية',
+    shortCode: 'BAC PRO',
+    label: 'البكالوريا المهنية (حسب البطاقة التقنية لكل مسلك)',
+    levelLabel: 'البكالوريا المهنية',
+    examsPerSemester: 3,
+    annualExamsTotal: 6,
+    homeworksPerSemester: 2,
+    officialDuration: 'ساعتان (2h)',
+    durationMinutes: 120,
+    annualExamHours: 12,
+    supervisedWeightPct: 100,
+    singleExamWeightLabel: '33.33%',
+    subjectCoefficient: '2 إلى 4',
+    weeklyHours: '2 إلى 4 ساعات (حسب المسلك)',
+    assessmentNature: 'امتحان وطني + مراقبة مستمرة (حسب البطاقة التقنية للمسلك)',
+    taxonomyBreakdown: {
+      directApplicationPct: 40,
+      familiarSituationsPct: 45,
+      complexProblemsPct: 15,
+    },
+    examCriteriaTemplate:
+      '40% تطبيق مباشر للتقنيات · 45% توظيف في وضعيات مألوفة ومهنية · 15% مسائل تركيبية (المذكرة 142-08).',
+    gradingScaleTemplate:
+      'التنقيط على 20 وفق المذكرة 142-08 والبطاقة التقنية للمسلك المهني (100% فروض محروسة داخل القسم).',
+    keySyllabusHighlights:
+      'الدوال العددية والاشتقاق · المتتاليات · اللوغاريتم والأسية · الإحصاء والاحتمالات التطبيقية (حسب البطاقة التقنية للمسلك).',
   },
 ];
 
@@ -381,16 +638,23 @@ export function detectMathTrackFromMetadata(metadata: MassarMetadata): Memo142Ma
 
   const is2Bac = /2\s*bac|ثاني[ةه]\s*بكالوريا|ثانية\s*باك|2b/.test(raw);
   const is1Bac = /1\s*bac|اولي\s*بكالوريا|أولى\s*بكالوريا|اولى\s*باك|1b/.test(raw);
-  const isTC = /جذع|tc|tcs|tcsf|tclsh|tct/.test(raw);
+  const isTC = /جذع|tc|tcs|tcsf|tclsh|tct|tco/.test(raw);
 
+  const isPro = /مهني[ةه]|\bpro\b|bac\s*pro/.test(raw);
+  const isAA = /فنون\s*تطبيقي[ةه]|الفنون|\baa\b|arts\s*appl/.test(raw);
+  const isOri = /اصيل|أصيل|شرعي[ةه]|لغة\s*عربي[ةه]|\btco\b|\bori\b/.test(raw);
   const isSM = /علوم رياضية|رياضية|\bsm\b|sm[-_a-b0-9]/i.test(raw);
   const isEco = /اقتصاد|تدبير|محاسب|\beco\b|\bsgc\b|\bseco\b/i.test(raw);
   const isLSH = /اداب|آداب|انسانية|\blsh\b|lettre/i.test(raw);
-  const isPCSVT = /فيزيائية|حياة|ارض|أرض|\bpc\b|\bsvt\b|\bsp\b/i.test(raw);
+  const isPCSVT = /فيزيائية|حياة|ارض|أرض|زراعي[ةه]|ميكانيك|كهربائ|\bpc\b|\bsvt\b|\bsp\b|\bstm\b|\bste\b/i.test(raw);
+
+  if (isPro) return MEMO_142_MATH_TRACKS.find((t) => t.id === 'bac-pro')!;
 
   if (is2Bac) {
     if (isSM) return MEMO_142_MATH_TRACKS.find((t) => t.id === '2bac-sm')!;
     if (isEco) return MEMO_142_MATH_TRACKS.find((t) => t.id === '2bac-eco')!;
+    if (isAA) return MEMO_142_MATH_TRACKS.find((t) => t.id === '2bac-aa')!;
+    if (isOri) return MEMO_142_MATH_TRACKS.find((t) => t.id === '2bac-ori')!;
     if (isLSH) return MEMO_142_MATH_TRACKS.find((t) => t.id === '2bac-lsh')!;
     return MEMO_142_MATH_TRACKS.find((t) => t.id === '2bac-pc-svt')!;
   }
@@ -398,11 +662,14 @@ export function detectMathTrackFromMetadata(metadata: MassarMetadata): Memo142Ma
   if (is1Bac) {
     if (isSM) return MEMO_142_MATH_TRACKS.find((t) => t.id === '1bac-sm')!;
     if (isEco) return MEMO_142_MATH_TRACKS.find((t) => t.id === '1bac-eco')!;
+    if (isAA) return MEMO_142_MATH_TRACKS.find((t) => t.id === '1bac-aa')!;
+    if (isOri) return MEMO_142_MATH_TRACKS.find((t) => t.id === '1bac-ori')!;
     if (isLSH) return MEMO_142_MATH_TRACKS.find((t) => t.id === '1bac-lsh')!;
     return MEMO_142_MATH_TRACKS.find((t) => t.id === '1bac-se')!;
   }
 
   if (isTC) {
+    if (isOri) return MEMO_142_MATH_TRACKS.find((t) => t.id === 'tco')!;
     if (isLSH) return MEMO_142_MATH_TRACKS.find((t) => t.id === 'tclsh')!;
     return MEMO_142_MATH_TRACKS.find((t) => t.id === 'tcs')!;
   }
@@ -410,6 +677,8 @@ export function detectMathTrackFromMetadata(metadata: MassarMetadata): Memo142Ma
   if (isPCSVT) return MEMO_142_MATH_TRACKS.find((t) => t.id === '2bac-pc-svt')!;
   if (isSM) return MEMO_142_MATH_TRACKS.find((t) => t.id === '1bac-sm')!;
   if (isEco) return MEMO_142_MATH_TRACKS.find((t) => t.id === '2bac-eco')!;
+  if (isAA) return MEMO_142_MATH_TRACKS.find((t) => t.id === '2bac-aa')!;
+  if (isOri) return MEMO_142_MATH_TRACKS.find((t) => t.id === '1bac-ori')!;
   if (isLSH) return MEMO_142_MATH_TRACKS.find((t) => t.id === '1bac-lsh')!;
 
   return MEMO_142_MATH_TRACKS[0];

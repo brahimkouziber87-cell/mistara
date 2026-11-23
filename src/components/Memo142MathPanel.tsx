@@ -12,14 +12,17 @@ import {
   Info,
   Scale,
   Sparkles,
+  Table2,
 } from 'lucide-react';
 import {
   auditMemo142Compliance,
   detectMathTrackFromMetadata,
   isHighSchoolCycle,
   MATH_TEACHER_OFFICIAL_DOCS,
-  MEMO_142_MATH_TRACKS,
+  MathLevelGroup,
   MathTrackId,
+  MEMO_142_CORE_RULES,
+  MEMO_142_MATH_TRACKS,
 } from '../data/memo142MathGuide';
 import { ComputedStats, MassarMetadata, ReportTemplateSchema } from '../types/report';
 
@@ -62,6 +65,7 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
   const [isManualTrack, setIsManualTrack] = useState(false);
   const [isExpanded, setIsExpanded] = useState<boolean>(() => isHigh);
   const [showDocsChecklist, setShowDocsChecklist] = useState(false);
+  const [showReferenceTable, setShowReferenceTable] = useState(false);
   const [checkedDocs, setCheckedDocs] = useState<Record<string, boolean>>(() =>
     loadCheckedDocs()
   );
@@ -230,10 +234,21 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
                 }}
                 className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-900 focus:border-teal-700 focus:ring-2 focus:ring-teal-700/15 focus:outline-none"
               >
-                {MEMO_142_MATH_TRACKS.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.shortCode} — {t.label} ({t.examsPerSemester} فروض · {t.officialDuration})
-                  </option>
+                {(
+                  [
+                    'الجذع المشترك',
+                    'الأولى بكالوريا',
+                    'الثانية بكالوريا',
+                    'البكالوريا المهنية',
+                  ] as MathLevelGroup[]
+                ).map((group) => (
+                  <optgroup key={group} label={group}>
+                    {MEMO_142_MATH_TRACKS.filter((t) => t.levelGroup === group).map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.shortCode} — {t.label} ({t.examsPerSemester} فروض · {t.officialDuration} · معامل {t.subjectCoefficient})
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </div>
@@ -241,8 +256,25 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
+                onClick={() => setShowReferenceTable((v) => !v)}
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
+                  showReferenceTable
+                    ? 'border-teal-700 bg-teal-50 text-teal-900'
+                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <Table2 className="h-3.5 w-3.5 text-teal-700" />
+                <span>دليل المعاملات والفروض (142-08)</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setShowDocsChecklist((v) => !v)}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 whitespace-nowrap cursor-pointer"
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
+                  showDocsChecklist
+                    ? 'border-teal-700 bg-teal-50 text-teal-900'
+                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
               >
                 <BookMarked className="h-3.5 w-3.5 text-teal-700" />
                 <span>الوثائق التربوية ({checkedDocsCount}/{MATH_TEACHER_OFFICIAL_DOCS.length})</span>
@@ -254,7 +286,7 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
                 className="inline-flex items-center gap-1.5 rounded-lg bg-teal-700 px-3.5 py-2 text-xs font-bold text-white transition-colors hover:bg-teal-800 whitespace-nowrap cursor-pointer"
               >
                 <Sparkles className="h-3.5 w-3.5" />
-                <span>تطبيق مواصفات مذكرة التقويم على الفرض</span>
+                <span>تطبيق مواصفات المذكرة 142-08</span>
               </button>
             </div>
           </div>
@@ -262,12 +294,12 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
           {/* 4-Column Hairline Official Spec Strip */}
           <div className="grid grid-cols-2 divide-y sm:divide-y-0 sm:divide-x sm:divide-x-reverse divide-slate-200 rounded-lg border border-slate-200 bg-slate-50/60 lg:grid-cols-4">
             <div className="px-4 py-3">
-              <div className="text-[11px] font-semibold text-slate-500">الفروض المحروسة والمنزلية</div>
+              <div className="text-[11px] font-semibold text-slate-500">الفروض والغلاف الزمني</div>
               <div className="mt-1 font-mono text-sm font-bold text-slate-900 tabular-nums">
-                {activeTrack.examsPerSemester} محروسة · {activeTrack.officialDuration}
+                {activeTrack.examsPerSemester} فروض/دورة · {activeTrack.officialDuration}
               </div>
               <div className="mt-0.5 text-[11px] text-slate-500">
-                + {activeTrack.homeworksPerSemester} فروض منزلية · الغلاف: {activeTrack.weeklyHours}
+                سنوياً: {activeTrack.annualExamsTotal} فروض ({activeTrack.annualExamHours}س) · الغلاف: {activeTrack.weeklyHours}
               </div>
             </div>
 
@@ -279,8 +311,8 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
                 {activeTrack.supervisedWeightPct}% فروض محروسة
               </div>
               <div className="mt-0.5 text-[11px] text-slate-500">
-                وزن الفرض الواحد: <span className="font-mono font-semibold">{activeTrack.singleExamWeightLabel}</span> · المعامل{' '}
-                <span className="font-mono font-semibold">{activeTrack.subjectCoefficient}</span>
+                وزن الفرض: <span className="font-mono font-semibold">{activeTrack.singleExamWeightLabel}</span> · المعامل{' '}
+                <span className="font-mono font-semibold">{activeTrack.subjectCoefficient}</span> · {activeTrack.assessmentNature}
               </div>
             </div>
 
@@ -348,6 +380,92 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
             <span className="font-bold text-slate-800">محاور المقرر الرسمي للمسلك: </span>
             {activeTrack.keySyllabusHighlights}
           </div>
+
+          {/* Interactive Official Memo 142-08 Reference Matrix & Core Rules */}
+          {showReferenceTable && (
+            <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-4 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
+                  <Table2 className="h-4 w-4 text-teal-700" />
+                  <span>دليل معاملات والغلاف الزمني وفروض الرياضيات بالسلك الثانوي التأهيلي (المذكرة 142-08)</span>
+                </div>
+                <span className="text-[11px] text-slate-500">
+                  انقر على أي مسلك لاعتماده فوراً في المدقّق
+                </span>
+              </div>
+
+              <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+                <table className="w-full text-right text-[11px] border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-100/80 text-slate-700 font-bold">
+                      <th className="px-3 py-2">المستوى</th>
+                      <th className="px-3 py-2">الشعبة / المسلك</th>
+                      <th className="px-2 py-2 text-center">المعامل</th>
+                      <th className="px-2 py-2">الغلاف الأسبوعي</th>
+                      <th className="px-2 py-2 text-center">د1 / د2 (المجموع)</th>
+                      <th className="px-2 py-2 text-center">المدة (س)</th>
+                      <th className="px-2 py-2 text-center">ساعات/سنة</th>
+                      <th className="px-3 py-2">طبيعة التقويم الإشهادي</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {MEMO_142_MATH_TRACKS.map((track) => {
+                      const isSelected = track.id === activeTrack.id;
+                      return (
+                        <tr
+                          key={track.id}
+                          onClick={() => {
+                            setIsManualTrack(true);
+                            setSelectedTrackId(track.id);
+                          }}
+                          className={`cursor-pointer transition-colors ${
+                            isSelected
+                              ? 'bg-teal-50/80 font-semibold text-teal-950'
+                              : 'hover:bg-slate-50 text-slate-700'
+                          }`}
+                        >
+                          <td className="px-3 py-2 whitespace-nowrap text-slate-500">
+                            {track.levelGroup}
+                          </td>
+                          <td className="px-3 py-2 font-semibold text-slate-900">
+                            {track.label}
+                          </td>
+                          <td className="px-2 py-2 text-center font-mono font-bold text-teal-800">
+                            {track.subjectCoefficient}
+                          </td>
+                          <td className="px-2 py-2 whitespace-nowrap">{track.weeklyHours}</td>
+                          <td className="px-2 py-2 text-center font-mono tabular-nums whitespace-nowrap">
+                            {track.examsPerSemester} + {track.examsPerSemester} ({track.annualExamsTotal})
+                          </td>
+                          <td className="px-2 py-2 text-center whitespace-nowrap">
+                            {track.officialDuration}
+                          </td>
+                          <td className="px-2 py-2 text-center font-mono tabular-nums">
+                            {track.annualExamHours}س
+                          </td>
+                          <td className="px-3 py-2 text-slate-600">{track.assessmentNature}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {MEMO_142_CORE_RULES.map((rule, idx) => (
+                  <div
+                    key={rule.id}
+                    className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11px]"
+                  >
+                    <div className="font-bold text-teal-900">
+                      {idx + 1}. {rule.title}
+                    </div>
+                    <p className="mt-0.5 leading-relaxed text-slate-600">{rule.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Live 5-Point Compliance Audit Grid */}
           <div className="space-y-2">
