@@ -840,18 +840,27 @@ export function auditMemo142Compliance(
   }
 
   // 4. Weighting & Official Ministry Header
-  const hasWeight = (metadata.coefficient || '').trim().length > 0;
+  const rawWeight = (metadata.coefficient || '').trim();
+  const hasWeight = rawWeight.length > 0;
+  const parsedWeightNum = parseFloat(rawWeight.replace(',', '.').replace(/[^\d.]/g, ''));
+  const expectedWeightNum = parseFloat(track.singleExamWeightLabel.replace(/[^\d.]/g, ''));
+  const weightMatchesTrack =
+    track.id === 'bac-pro' ||
+    (Number.isFinite(parsedWeightNum) &&
+      Number.isFinite(expectedWeightNum) &&
+      Math.abs(parsedWeightNum - expectedWeightNum) <= 0.6);
+
   const trimmedMinistry = (template.headerConfig.ministryLine || '').trim();
   const officialMinistryOk =
     trimmedMinistry.length > 0 &&
     !trimmedMinistry.includes('والرياضة') &&
     !trimmedMinistry.includes('البحث العلمي');
-  if (hasWeight && officialMinistryOk) {
+  if (hasWeight && weightMatchesTrack && officialMinistryOk) {
     checks.push({
       id: 'admin',
       label: 'وزن الفرض والترويسة الوزارية',
       status: 'pass',
-      detail: `وزن الفرض مضبوط (${metadata.coefficient}) والترويسة مطابقة للتسمية الرسمية للوزارة.`,
+      detail: `وزن الفرض (${rawWeight}) مطابق لمسلك ${track.shortCode} والترويسة مطابقة للتسمية الرسمية للوزارة.`,
     });
   } else {
     checks.push({
@@ -860,7 +869,9 @@ export function auditMemo142Compliance(
       status: 'warn',
       detail: !officialMinistryOk
         ? 'الترويسة تحتوي على تسمية قديمة للوزارة — حدّثها إلى «وزارة التربية الوطنية والتعليم الأولي والتكوين المهني والتأهيل».'
-        : `يرجى ضبط وزن الفرض (${track.singleExamWeightLabel} ضمن 100% فروض محروسة).`,
+        : !hasWeight
+        ? `يرجى ضبط وزن الفرض (${track.singleExamWeightLabel} ضمن 100% فروض محروسة وفق المذكرة 142-08).`
+        : `وزن الفرض المدخل (${rawWeight}) لا يطابق الوزن القانوني لمسلك ${track.shortCode} (${track.singleExamWeightLabel} لـ ${track.examsPerSemester} فروض/دورة).`,
     });
   }
 
@@ -874,7 +885,7 @@ export function auditMemo142Compliance(
         id: 'remediation',
         label: 'خطة الدعم وتفييء مجموعات الحاجة',
         status: 'pass',
-        detail: `تم رصد ${stats.failed} متعثراً وتفعيل خطة المعالجة والدعم المبرمجة وفق مذكرة التقويم.`,
+        detail: `تم رصد ${stats.failed} متعثراً وتفعيل خطة المعالجة والدعم المبرمجة وفق المذكرة 142-08.`,
       });
     } else {
       checks.push({

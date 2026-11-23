@@ -704,7 +704,7 @@ export function matchCompetencyBankSelection(metadata: MassarMetadata): {
     const is1Bac = /1\s*bac|اولي\s*بكالوريا|1bac/.test(levelNorm);
     const isSM = /علوم رياضيه|\bsm\b|sm[-_a-b0-9]/i.test(levelNorm);
     const isEco = /اقتصاد|تدبير|\beco\b|\bsgc\b/i.test(levelNorm);
-    const isLsh = /اداب|انسانيه|\blsh\b|lettre/i.test(levelNorm);
+    const isLsh = /اداب|انسانيه|اصيل|شرعيه|\blsh\b|\btco\b|\bori\b|lettre/i.test(levelNorm);
     const isTc = /جذع|\btc/i.test(levelNorm);
 
     if (is2Bac && isSM && /2bac.*sm|ثانيه بكالوريا علوم رياضيه/.test(hintNorm)) score += 10;

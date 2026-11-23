@@ -178,12 +178,12 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
               <span>{activeTrack.label}</span>
               <span aria-hidden="true"> · </span>
               <span className="font-mono tabular-nums">
-                {activeTrack.examsPerSemester} فروض محروسة + {activeTrack.homeworksPerSemester} منزلية/دورة
+                {activeTrack.examsPerSemester} فروض/دورة ({activeTrack.annualExamsTotal} سنوياً)
               </span>
               <span aria-hidden="true"> · </span>
               <span>المدة: {activeTrack.officialDuration}</span>
               <span aria-hidden="true"> · </span>
-              <span className="font-mono tabular-nums">100% فروض محروسة</span>
+              <span className="font-mono tabular-nums">100% فروض محروسة (دون أنشطة مندمجة)</span>
             </p>
           </div>
         </div>
@@ -370,7 +370,7 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
                 )}
               </div>
               <div className="mt-0.5 text-[11px] text-slate-500">
-                المذكرة 142-08: الأسبوع الموالي (≤ 7 أيام)
+                المذكرة 142-08: ≤ 14 يوماً (أسبوعان كحد أقصى)
               </div>
             </div>
           </div>
