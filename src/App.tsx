@@ -235,6 +235,15 @@ export default function App() {
         includeFrenchHeader:
           savedTpl.headerConfig.includeFrenchHeader ??
           prev.headerConfig.includeFrenchHeader,
+        teacherSignatureMode:
+          savedTpl.headerConfig.teacherSignatureMode ??
+          prev.headerConfig.teacherSignatureMode,
+        teacherSignatureText:
+          savedTpl.headerConfig.teacherSignatureText ??
+          prev.headerConfig.teacherSignatureText,
+        teacherSignatureImage:
+          savedTpl.headerConfig.teacherSignatureImage ??
+          prev.headerConfig.teacherSignatureImage,
       },
       pedagogicalContent: {
         ...prev.pedagogicalContent,

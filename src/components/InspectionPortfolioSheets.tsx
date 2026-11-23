@@ -262,8 +262,26 @@ export const InspectionCoverSheet: React.FC<InspectionCoverSheetProps> = ({
                   )}
                 </div>
                 {i === 0 ? (
-                  <div className="mt-2 font-bold text-slate-900">
-                    {metadata.teacherName || '—'}
+                  <div className="mt-1.5 flex flex-col items-center justify-center gap-0.5">
+                    <div className="font-bold text-slate-900">
+                      {metadata.teacherName || '—'}
+                    </div>
+                    {(template.headerConfig.teacherSignatureMode || 'manual') === 'image' ? (
+                      template.headerConfig.teacherSignatureImage ? (
+                        <img
+                          src={template.headerConfig.teacherSignatureImage}
+                          alt="توقيع الأستاذ"
+                          className="mx-auto mt-0.5 max-h-9 max-w-[120px] object-contain"
+                        />
+                      ) : null
+                    ) : template.headerConfig.teacherSignatureText?.trim() ? (
+                      <div
+                        className="mt-0.5 font-serif text-[11px] font-bold italic"
+                        style={{ color: accent }}
+                      >
+                        {template.headerConfig.teacherSignatureText.trim()}
+                      </div>
+                    ) : null}
                   </div>
                 ) : (
                   <div className="mx-auto mt-4 w-28 border-b border-dotted border-slate-400" />

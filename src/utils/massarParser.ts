@@ -2162,11 +2162,26 @@ export function exportReportToWordDoc(
                       : i === 1
                       ? labels.sigInspectorPage2Sub
                       : labels.sigPrincipalPage2Sub;
+                  const sigMode = template.headerConfig.teacherSignatureMode || 'manual';
+                  const rawSigImg = (template.headerConfig.teacherSignatureImage || '').trim();
+                  const safeSigImg = /^data:image\/(png|jpeg|jpg|webp|gif);base64,[A-Za-z0-9+/=\s]+$/i.test(rawSigImg)
+                    ? rawSigImg
+                    : '';
+                  const teacherSigHtml =
+                    i === 0
+                      ? sigMode === 'image'
+                        ? safeSigImg
+                          ? `<div style="margin-top:4px;"><img src="${safeSigImg}" alt="توقيع الأستاذ" style="max-height:36px; max-width:120px;" /></div>`
+                          : ''
+                        : template.headerConfig.teacherSignatureText?.trim()
+                        ? `<div style="font-size:10.5px; font-style:italic; font-weight:bold; color:${accent}; margin-top:3px;">${esc(template.headerConfig.teacherSignatureText.trim())}</div>`
+                        : ''
+                      : '';
                   return `
-                <td style="border:1px solid #cbd5e1; padding:6px 6px 20px; vertical-align:top; background:#f8fafc;">
+                <td style="border:1px solid #cbd5e1; padding:6px 6px 14px; vertical-align:top; background:#f8fafc;">
                   <strong style="color:${accent};">${esc(sigLabel)}</strong>
                   ${sigSub ? `<div style="font-size:9px; color:#475569; margin-top:2px;">${esc(sigSub)}</div>` : ''}
-                  ${i === 0 ? `<div style="font-size:10px; font-weight:bold; margin-top:6px;">${esc(metadata.teacherName || '—')} (${esc(metadata.correctionDate || '—')})</div>` : `<div style="font-size:9px; color:#64748b; margin-top:12px;">${esc(lang === 'ar' ? sig.page2Footer || '' : '')}</div>`}
+                  ${i === 0 ? `<div style="font-size:10px; font-weight:bold; margin-top:6px;">${esc(metadata.teacherName || '—')} (${esc(metadata.correctionDate || '—')})</div>${teacherSigHtml}` : `<div style="font-size:9px; color:#64748b; margin-top:12px;">${esc(lang === 'ar' ? sig.page2Footer || '' : '')}</div>`}
                 </td>`;
                 })
                 .join('')}
@@ -2249,11 +2264,27 @@ export function exportReportToWordDoc(
                       : i === 1
                       ? labels.sigInspectorSub
                       : labels.sigPrincipalSub;
+                  const sigMode = template.headerConfig.teacherSignatureMode || 'manual';
+                  const rawSigImg = (template.headerConfig.teacherSignatureImage || '').trim();
+                  const safeSigImg = /^data:image\/(png|jpeg|jpg|webp|gif);base64,[A-Za-z0-9+/=\s]+$/i.test(rawSigImg)
+                    ? rawSigImg
+                    : '';
+                  const teacherSigHtml =
+                    i === 0
+                      ? sigMode === 'image'
+                        ? safeSigImg
+                          ? `<div style="margin-top:4px;"><img src="${safeSigImg}" alt="توقيع الأستاذ" style="max-height:38px; max-width:125px;" /></div>`
+                          : ''
+                        : template.headerConfig.teacherSignatureText?.trim()
+                        ? `<div style="font-size:11px; font-style:italic; font-weight:bold; color:${accent}; margin-top:3px;">${esc(template.headerConfig.teacherSignatureText.trim())}</div>`
+                        : ''
+                      : '';
                   return `
-                <td style="border:1px solid #cbd5e1; padding:6px 6px 20px; vertical-align:top; background:#f8fafc;">
+                <td style="border:1px solid #cbd5e1; padding:6px 6px 14px; vertical-align:top; background:#f8fafc;">
                   <strong style="color:${accent};">${esc(sigLabel)}</strong>
                   ${sigSub ? `<div style="font-size:9.5px; color:#64748b; margin-top:2px;">${esc(sigSub)}</div>` : ''}
                   ${i === 0 && metadata.teacherName ? `<div style="font-size:10.5px; font-weight:bold; margin-top:6px;">${esc(metadata.teacherName)}</div>` : ''}
+                  ${teacherSigHtml}
                 </td>`;
                 })
                 .join('')}

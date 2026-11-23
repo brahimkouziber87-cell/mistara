@@ -28,9 +28,8 @@ function getGeminiClient(): GoogleGenAI {
 
 const GEMINI_MODEL_CANDIDATES = [
   process.env.GEMINI_MODEL,
-  'gemini-2.5-flash',
-  'gemini-2.0-flash',
   'gemini-4-hydrogen',
+  'gemini-3.1-flash-lite',
 ].filter((m): m is string => Boolean(m && m.trim()));
 
 async function generateWithFallback(
@@ -44,6 +43,7 @@ async function generateWithFallback(
   let lastError: unknown = null;
   for (const modelName of GEMINI_MODEL_CANDIDATES) {
     try {
+      const supportsThinkingLevel = /^gemini-[34]/i.test(modelName) && !/lite/i.test(modelName);
       return await ai.models.generateContent({
         model: modelName,
         contents: params.contents,
@@ -51,7 +51,7 @@ async function generateWithFallback(
           ...(params.systemInstruction ? { systemInstruction: params.systemInstruction } : {}),
           responseMimeType: 'application/json',
           responseSchema: params.responseSchema,
-          ...(modelName.includes('gemini-4') || modelName.includes('2.5')
+          ...(supportsThinkingLevel
             ? { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } }
             : {}),
         },

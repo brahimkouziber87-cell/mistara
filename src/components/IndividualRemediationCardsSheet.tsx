@@ -1007,13 +1007,29 @@ export const IndividualRemediationCardsSheet: React.FC<
                           config.showParentSignature ? 'grid-cols-3' : 'grid-cols-2'
                         } gap-1.5 text-center text-[7.5px]`}
                       >
-                        <div className="rounded border border-slate-200 bg-slate-50/50 px-1.5 py-1">
+                        <div className="rounded border border-slate-200 bg-slate-50/50 px-1.5 py-1 flex flex-col items-center justify-between">
                           <div className="font-bold" style={{ color: accent }}>
                             {labels.cardSigTeacher}
                           </div>
-                          <div className="mt-1 truncate font-semibold text-slate-800">
+                          <div className="mt-0.5 truncate font-semibold text-slate-800 max-w-full">
                             {metadata.teacherName || '....................'}
                           </div>
+                          {(template.headerConfig.teacherSignatureMode || 'manual') === 'image' ? (
+                            template.headerConfig.teacherSignatureImage ? (
+                              <img
+                                src={template.headerConfig.teacherSignatureImage}
+                                alt="توقيع الأستاذ"
+                                className="mx-auto mt-0.5 max-h-4 max-w-[75px] object-contain"
+                              />
+                            ) : null
+                          ) : template.headerConfig.teacherSignatureText?.trim() ? (
+                            <div
+                              className="mt-0.5 truncate font-serif text-[8px] font-bold italic max-w-full"
+                              style={{ color: accent }}
+                            >
+                              {template.headerConfig.teacherSignatureText.trim()}
+                            </div>
+                          ) : null}
                         </div>
 
                         <div className="rounded border border-slate-200 bg-slate-50/50 px-1.5 py-1">
@@ -1096,6 +1112,23 @@ export function buildRemediationCardsWordSectionHtml(
     return `<div style="border:1px solid #cbd5e1; padding:12px; text-align:center; font-family:${wordFont};">${esc(labels.cardsEmptyTitle)}</div>`;
   }
 
+  const safeSigImg =
+    (template.headerConfig.teacherSignatureMode || 'manual') === 'image' &&
+    typeof template.headerConfig.teacherSignatureImage === 'string' &&
+    /^data:image\/(png|jpeg|jpg|webp|gif);base64,[A-Za-z0-9+/=\s]+$/i.test(
+      template.headerConfig.teacherSignatureImage.trim()
+    )
+      ? template.headerConfig.teacherSignatureImage.trim()
+      : '';
+  const teacherCardSigHtml =
+    (template.headerConfig.teacherSignatureMode || 'manual') === 'image'
+      ? safeSigImg
+        ? `<div style="margin-top:3px;"><img src="${safeSigImg}" alt="توقيع الأستاذ" style="max-height:24px; max-width:90px;" /></div>`
+        : ''
+      : template.headerConfig.teacherSignatureText?.trim()
+      ? `<div style="font-size:8.5pt; font-style:italic; font-weight:bold; color:${accent}; margin-top:2px;">${esc(template.headerConfig.teacherSignatureText.trim())}</div>`
+      : '';
+
   const textAlign = labels.dir === 'rtl' ? 'right' : 'left';
   const cardsHtml = cardsData
     .map(
@@ -1143,7 +1176,7 @@ export function buildRemediationCardsWordSectionHtml(
         }
         <table style="width:100%; border-collapse:collapse; margin-top:6px; font-size:9pt; text-align:center;">
           <tr>
-            <td style="border:1px solid #cbd5e1; padding:6px;"><strong>${esc(labels.cardSigTeacher)}:</strong><br/>${esc(metadata.teacherName || '................')}</td>
+            <td style="border:1px solid #cbd5e1; padding:6px;"><strong>${esc(labels.cardSigTeacher)}:</strong><br/>${esc(metadata.teacherName || '................')}${teacherCardSigHtml}</td>
             <td style="border:1px solid #cbd5e1; padding:6px;"><strong>${esc(labels.cardSigStudent)}:</strong><br/>................</td>
             ${
               config.showParentSignature

@@ -1111,8 +1111,26 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                     )}
                   </div>
                   {i === 0 ? (
-                    <div className="mt-1 font-semibold text-slate-900">
-                      {metadata.teacherName || '—'}
+                    <div className="mt-1 flex flex-col items-center justify-center gap-0.5">
+                      <div className="font-semibold text-slate-900">
+                        {metadata.teacherName || '—'}
+                      </div>
+                      {(template.headerConfig.teacherSignatureMode || 'manual') === 'image' ? (
+                        template.headerConfig.teacherSignatureImage ? (
+                          <img
+                            src={template.headerConfig.teacherSignatureImage}
+                            alt="توقيع الأستاذ"
+                            className="mx-auto mt-0.5 max-h-8 max-w-[110px] object-contain"
+                          />
+                        ) : null
+                      ) : template.headerConfig.teacherSignatureText?.trim() ? (
+                        <div
+                          className="mt-0.5 font-serif text-[10.5px] font-bold italic"
+                          style={{ color: accent }}
+                        >
+                          {template.headerConfig.teacherSignatureText.trim()}
+                        </div>
+                      ) : null}
                     </div>
                   ) : (
                     <div className="mx-auto mt-3 w-28 border-b border-dotted border-slate-400" />
@@ -1607,8 +1625,30 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                     )}
                   </div>
                   {i === 0 ? (
-                    <div className="mt-1">
+                    <div className="mt-1 flex flex-col items-center justify-center gap-0.5">
                       <div className="font-bold text-slate-900">{metadata.teacherName || '—'}</div>
+                      {(template.headerConfig.teacherSignatureMode || 'manual') === 'image' ? (
+                        template.headerConfig.teacherSignatureImage ? (
+                          <img
+                            src={template.headerConfig.teacherSignatureImage}
+                            alt="توقيع الأستاذ"
+                            className={`mx-auto object-contain ${
+                              isUltraDensePage2
+                                ? 'max-h-5 max-w-[85px]'
+                                : isDensePage2
+                                ? 'max-h-6 max-w-[95px]'
+                                : 'max-h-7 max-w-[110px]'
+                            }`}
+                          />
+                        ) : null
+                      ) : template.headerConfig.teacherSignatureText?.trim() ? (
+                        <div
+                          className="font-serif text-[9.5px] font-bold italic leading-tight"
+                          style={{ color: accent }}
+                        >
+                          {template.headerConfig.teacherSignatureText.trim()}
+                        </div>
+                      ) : null}
                       <div className="font-mono text-[8.5px] text-slate-600">
                         {labels.dateLabel} {metadata.correctionDate || '—'}
                       </div>

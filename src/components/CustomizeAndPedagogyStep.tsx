@@ -10,8 +10,10 @@ import {
   EyeOff,
   FileText,
   FileUp,
+  ImagePlus,
   Loader2,
   Paperclip,
+  PenTool,
   Plus,
   RotateCcw,
   Sparkles,
@@ -102,12 +104,85 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
   const [draftSuccessMsg, setDraftSuccessMsg] = useState<string | null>(null);
   const pdfInputRef = useRef<HTMLInputElement | null>(null);
   const docxInputRef = useRef<HTMLInputElement | null>(null);
+  const signatureInputRef = useRef<HTMLInputElement | null>(null);
+  const [signatureUploadError, setSignatureUploadError] = useState<string | null>(null);
   const [isAttachingPdf, setIsAttachingPdf] = useState(false);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const [isImportingDocx, setIsImportingDocx] = useState(false);
   const [docxImportError, setDocxImportError] = useState<string | null>(null);
   const [docxImportResult, setDocxImportResult] =
     useState<DocxTemplateImportResult | null>(null);
+
+  const handleUploadSignatureImage = (file: File) => {
+    setSignatureUploadError(null);
+    if (!file.type.startsWith('image/')) {
+      setSignatureUploadError('يرجى اختيار ملف صورة صالح (PNG أو JPG أو WebP).');
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setSignatureUploadError('حجم الصورة كبير جداً. يرجى اختيار صورة أقل من 4 ميغابايت.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = typeof reader.result === 'string' ? reader.result : '';
+      if (!dataUrl) return;
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const maxW = 360;
+          const maxH = 140;
+          let targetW = img.width || maxW;
+          let targetH = img.height || maxH;
+          if (targetW > maxW || targetH > maxH) {
+            const ratio = Math.min(maxW / targetW, maxH / targetH);
+            targetW = Math.max(1, Math.round(targetW * ratio));
+            targetH = Math.max(1, Math.round(targetH * ratio));
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = targetW;
+          canvas.height = targetH;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.clearRect(0, 0, targetW, targetH);
+            ctx.drawImage(img, 0, 0, targetW, targetH);
+            const optimized = canvas.toDataURL('image/png');
+            onUpdateTemplate((prev) => ({
+              ...prev,
+              headerConfig: {
+                ...prev.headerConfig,
+                teacherSignatureMode: 'image',
+                teacherSignatureImage: optimized,
+              },
+            }));
+            return;
+          }
+        } catch {
+          // Fallback to raw data URL
+        }
+        if (!/^data:image\/(png|jpeg|jpg|webp|gif);base64,/i.test(dataUrl)) {
+          setSignatureUploadError('يرجى اختيار صورة بصيغة PNG أو JPG أو WebP.');
+          return;
+        }
+        onUpdateTemplate((prev) => ({
+          ...prev,
+          headerConfig: {
+            ...prev.headerConfig,
+            teacherSignatureMode: 'image',
+            teacherSignatureImage: dataUrl,
+          },
+        }));
+      };
+      img.onerror = () => {
+        setSignatureUploadError('تعذر قراءة ملف صورة التوقيع.');
+      };
+      img.src = dataUrl;
+    };
+    reader.onerror = () => {
+      setSignatureUploadError('تعذر قراءة ملف صورة التوقيع.');
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleAttachPdfFile = async (file: File) => {
     setAttachmentError(null);
@@ -1157,11 +1232,17 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
                               const prevIncludeFr = Boolean(
                                 prev.headerConfig.includeFrenchHeader
                               );
+                              const preservedSignature = {
+                                teacherSignatureMode: prev.headerConfig.teacherSignatureMode,
+                                teacherSignatureText: prev.headerConfig.teacherSignatureText,
+                                teacherSignatureImage: prev.headerConfig.teacherSignatureImage,
+                              };
                               if (prevLang === 'ar') {
                                 return {
                                   ...preset,
                                   headerConfig: {
                                     ...preset.headerConfig,
+                                    ...preservedSignature,
                                     reportLanguage: prevLang,
                                     includeFrenchHeader: prevIncludeFr,
                                   },
@@ -1174,6 +1255,7 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
                                 ...preset,
                                 headerConfig: {
                                   ...preset.headerConfig,
+                                  ...preservedSignature,
                                   reportLanguage: prevLang,
                                   includeFrenchHeader: prevIncludeFr,
                                   countryLine: localized.countryLine,
@@ -1790,6 +1872,206 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
                       <option value="none">بدون مبيان</option>
                     </select>
                   </div>
+                </div>
+
+                {/* Teacher Signature Field (Manual Text or Uploaded Image) */}
+                <div className="mt-5 border-t border-slate-100 pt-4">
+                  <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-xs font-bold text-slate-800">
+                        توقيع الأستاذ (يظهر في أسفل التقرير المطبوع)
+                      </h3>
+                      <p className="mt-0.5 text-[11px] text-slate-500">
+                        اختر بين كتابة التوقيع يدوياً أو رفع صورة لتوقيعك الشخصي لطباعته في خانة توقيع الأستاذ
+                      </p>
+                    </div>
+                    <div className="inline-flex items-center gap-1 rounded-lg bg-slate-100 p-0.5">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onUpdateTemplate((prev) => ({
+                            ...prev,
+                            headerConfig: {
+                              ...prev.headerConfig,
+                              teacherSignatureMode: 'manual',
+                            },
+                          }))
+                        }
+                        className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors cursor-pointer ${
+                          (template.headerConfig.teacherSignatureMode || 'manual') === 'manual'
+                            ? 'bg-white text-teal-800 shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        <PenTool className="h-3 w-3" />
+                        كتابة التوقيع يدوياً
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onUpdateTemplate((prev) => ({
+                            ...prev,
+                            headerConfig: {
+                              ...prev.headerConfig,
+                              teacherSignatureMode: 'image',
+                            },
+                          }))
+                        }
+                        className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors cursor-pointer ${
+                          template.headerConfig.teacherSignatureMode === 'image'
+                            ? 'bg-white text-teal-800 shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        <ImagePlus className="h-3 w-3" />
+                        رفع صورة التوقيع
+                      </button>
+                    </div>
+                  </div>
+
+                  {(template.headerConfig.teacherSignatureMode || 'manual') === 'manual' ? (
+                    <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                      <label className="mb-1 block text-xs font-semibold text-slate-700">
+                        نص توقيع الأستاذ (اختياري)
+                      </label>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <input
+                          type="text"
+                          value={template.headerConfig.teacherSignatureText || ''}
+                          onChange={(e) =>
+                            onUpdateTemplate((prev) => ({
+                              ...prev,
+                              headerConfig: {
+                                ...prev.headerConfig,
+                                teacherSignatureText: e.target.value,
+                              },
+                            }))
+                          }
+                          placeholder={
+                            metadata.teacherName
+                              ? `إمضاء: ذ. ${metadata.teacherName}`
+                              : 'اكتب صيغة التوقيع اليدوي هنا...'
+                          }
+                          className="flex-1 min-w-[200px] rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 placeholder:text-slate-400 focus:border-teal-700 focus:ring-2 focus:ring-teal-700/15 focus:outline-none"
+                        />
+                        {metadata.teacherName &&
+                          template.headerConfig.teacherSignatureText !==
+                            `إمضاء: ذ. ${metadata.teacherName}` && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onUpdateTemplate((prev) => ({
+                                  ...prev,
+                                  headerConfig: {
+                                    ...prev.headerConfig,
+                                    teacherSignatureText: `إمضاء: ذ. ${metadata.teacherName}`,
+                                  },
+                                }))
+                              }
+                              className="rounded-lg border border-teal-700/30 bg-teal-50 px-2.5 py-1.5 text-[11px] font-semibold text-teal-900 hover:bg-teal-100 cursor-pointer"
+                            >
+                              إدراج اسم الأستاذ تلقائياً
+                            </button>
+                          )}
+                        {template.headerConfig.teacherSignatureText && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onUpdateTemplate((prev) => ({
+                                ...prev,
+                                headerConfig: {
+                                  ...prev.headerConfig,
+                                  teacherSignatureText: '',
+                                },
+                              }))
+                            }
+                            className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-red-50 hover:text-red-700 cursor-pointer"
+                          >
+                            مسح
+                          </button>
+                        )}
+                      </div>
+                      {template.headerConfig.teacherSignatureText?.trim() && (
+                        <div className="mt-2.5 flex items-center justify-between rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2">
+                          <span className="text-[11px] text-slate-500">معاينة التوقيع اليدوي:</span>
+                          <span
+                            className="font-serif text-sm font-bold italic"
+                            style={{ color: template.styleConfig.accentColor || '#1e3a8a' }}
+                          >
+                            {template.headerConfig.teacherSignatureText}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                      <input
+                        ref={signatureInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleUploadSignatureImage(file);
+                          }
+                          e.target.value = '';
+                        }}
+                      />
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => signatureInputRef.current?.click()}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-teal-700 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-900 transition-colors hover:bg-teal-100 cursor-pointer"
+                          >
+                            <Upload className="h-3.5 w-3.5" />
+                            {template.headerConfig.teacherSignatureImage
+                              ? 'تغيير صورة التوقيع'
+                              : 'اختيار صورة التوقيع (PNG / JPG)'}
+                          </button>
+                          {template.headerConfig.teacherSignatureImage && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onUpdateTemplate((prev) => ({
+                                  ...prev,
+                                  headerConfig: {
+                                    ...prev.headerConfig,
+                                    teacherSignatureImage: '',
+                                  },
+                                }))
+                              }
+                              className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 cursor-pointer"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              حذف الصورة
+                            </button>
+                          )}
+                        </div>
+                        <span className="text-[10.5px] text-slate-500">
+                          يُفضل استخدام صورة توقيع بخلفية شفافة (PNG) أو بيضاء
+                        </span>
+                      </div>
+
+                      {signatureUploadError && (
+                        <p className="mt-2 text-xs font-semibold text-red-600">
+                          {signatureUploadError}
+                        </p>
+                      )}
+
+                      {template.headerConfig.teacherSignatureImage && (
+                        <div className="mt-2.5 flex items-center justify-between rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2">
+                          <span className="text-[11px] text-slate-500">معاينة صورة التوقيع:</span>
+                          <img
+                            src={template.headerConfig.teacherSignatureImage}
+                            alt="توقيع الأستاذ"
+                            className="max-h-11 max-w-[150px] object-contain"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-5 border-t border-slate-100 pt-4">

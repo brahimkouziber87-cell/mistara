@@ -53,6 +53,9 @@ export interface SavedInstitutionSettings {
     ministryLine?: string;
     reportLanguage?: ReportLanguage;
     includeFrenchHeader?: boolean;
+    teacherSignatureMode?: 'manual' | 'image';
+    teacherSignatureText?: string;
+    teacherSignatureImage?: string;
   };
   remediationNotes?: string;
   remediationCardsConfig?: Partial<RemediationCardsConfig>;
@@ -282,6 +285,19 @@ export function getInitialTemplate(): ReportTemplateSchema {
         typeof saved.headerConfig?.includeFrenchHeader === 'boolean'
           ? saved.headerConfig.includeFrenchHeader
           : base.headerConfig.includeFrenchHeader,
+      teacherSignatureMode:
+        saved.headerConfig?.teacherSignatureMode === 'image' ||
+        saved.headerConfig?.teacherSignatureMode === 'manual'
+          ? saved.headerConfig.teacherSignatureMode
+          : base.headerConfig.teacherSignatureMode ?? 'manual',
+      teacherSignatureText:
+        typeof saved.headerConfig?.teacherSignatureText === 'string'
+          ? saved.headerConfig.teacherSignatureText
+          : base.headerConfig.teacherSignatureText ?? '',
+      teacherSignatureImage:
+        typeof saved.headerConfig?.teacherSignatureImage === 'string'
+          ? saved.headerConfig.teacherSignatureImage
+          : base.headerConfig.teacherSignatureImage ?? '',
     },
     pedagogicalContent: {
       ...base.pedagogicalContent,
@@ -381,6 +397,9 @@ export function saveInstitutionSettings(
         ministryLine: template.headerConfig.ministryLine,
         reportLanguage: template.headerConfig.reportLanguage ?? 'ar',
         includeFrenchHeader: Boolean(template.headerConfig.includeFrenchHeader),
+        teacherSignatureMode: template.headerConfig.teacherSignatureMode ?? 'manual',
+        teacherSignatureText: template.headerConfig.teacherSignatureText ?? '',
+        teacherSignatureImage: template.headerConfig.teacherSignatureImage ?? '',
       },
       remediationNotes: template.pedagogicalContent.remediationNotes ?? '',
       remediationCardsConfig: template.remediationCardsConfig

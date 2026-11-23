@@ -157,6 +157,8 @@ export interface PedagogicalContent {
 
 export type ReportLanguage = 'ar' | 'fr' | 'en';
 
+export type TeacherSignatureMode = 'manual' | 'image';
+
 export interface TemplateHeaderConfig {
   layout: 'three-column-moroccan' | 'centered' | 'two-column';
   countryLine: string;
@@ -166,6 +168,9 @@ export interface TemplateHeaderConfig {
   reportTitle: string;
   reportSubtitle: string;
   appendixTitle?: string;
+  teacherSignatureMode?: TeacherSignatureMode;
+  teacherSignatureText?: string;
+  teacherSignatureImage?: string;
 }
 
 export type ReportFontFamily =
