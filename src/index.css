@@ -1,0 +1,182 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "IBM Plex Sans Arabic", "Cairo", ui-sans-serif, system-ui, sans-serif;
+  --font-display-ar: "Cairo", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+  --font-serif-ar: "Amiri", "Traditional Arabic", Georgia, serif;
+  --font-kufi-ar: "Noto Kufi Arabic", "Cairo", ui-sans-serif, sans-serif;
+  --font-tajawal-ar: "Tajawal", "Cairo", ui-sans-serif, sans-serif;
+  --font-plex-ar: "IBM Plex Sans Arabic", "Cairo", ui-sans-serif, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+:root {
+  --surface-canvas: #f7f9fb;
+  --brand-primary: #0f766e;
+  --brand-navy: #1e3a8a;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    scroll-behavior: smooth;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    background-color: var(--surface-canvas);
+    color: #0f172a;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display-ar);
+    text-wrap: balance;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.font-amiri {
+  font-family: var(--font-serif-ar);
+}
+
+.font-cairo {
+  font-family: var(--font-display-ar);
+}
+
+.font-plex-arabic {
+  font-family: var(--font-plex-ar);
+}
+
+.font-kufi {
+  font-family: var(--font-kufi-ar);
+}
+
+.font-tajawal {
+  font-family: var(--font-tajawal-ar);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes stepFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.step-transition {
+  animation: stepFadeIn 160ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .step-transition {
+    animation: none;
+  }
+}
+
+.report-sheet {
+  width: 210mm;
+  height: 296mm;
+  min-height: 296mm;
+  max-height: 296mm;
+  box-sizing: border-box;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    max-width: none !important;
+    overflow: visible !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+
+  .report-zoom-wrapper {
+    transform: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .report-sheet {
+    width: 210mm !important;
+    height: 296mm !important;
+    min-height: 296mm !important;
+    max-height: 296mm !important;
+    overflow: hidden !important;
+    box-shadow: none !important;
+    margin: 0 auto !important;
+    border-radius: 0 !important;
+    transform: none !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .report-sheet + .report-sheet {
+    break-before: page !important;
+    page-break-before: always !important;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr,
+  .avoid-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "id": "/",
+  "name": "مِسطرة — محرر تقارير الفروض المحروسة من مسار",
+  "short_name": "مِسطرة",
+  "description": "تطبيق تربوي لإعداد تقارير الفروض المحروسة انطلاقاً من ملفات نقط مسار مع رسوم بيانية وتصدير PDF وطباعة A4.",
+  "lang": "ar",
+  "dir": "rtl",
+  "theme_color": "#0f766e",
+  "background_color": "#f8fafc",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "start_url": "/",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/assets/aistudio/Sans_titre2_564d6d53.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

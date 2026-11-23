@@ -1,0 +1,8 @@
+{
+  "name": "Remix Massar Report Generator",
+  "description": "Automatically generate standardized classroom exam reports by importing and analyzing your student data files from Massar.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
