@@ -14,6 +14,7 @@ import {
   StudentRecord,
 } from '../types/report';
 import { computeExamStats } from './massarParser';
+import { migrateLegacyMinistryLine } from './institutionStorage';
 
 const ARCHIVE_DB_NAME = 'mistara_class_archive_db_v1';
 const ARCHIVE_STORE_NAME = 'projects';
@@ -202,6 +203,11 @@ export function sanitizeImportedArchiveProject(raw: unknown): ArchivedClassProje
     headerConfig: {
       ...baseTpl.headerConfig,
       ...(rawTpl.headerConfig || {}),
+      ministryLine:
+        typeof rawTpl.headerConfig?.ministryLine === 'string' &&
+        rawTpl.headerConfig.ministryLine.trim()
+          ? migrateLegacyMinistryLine(rawTpl.headerConfig.ministryLine)
+          : baseTpl.headerConfig.ministryLine,
     },
     styleConfig: {
       ...baseTpl.styleConfig,

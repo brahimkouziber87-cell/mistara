@@ -262,26 +262,34 @@ export const InspectionCoverSheet: React.FC<InspectionCoverSheetProps> = ({
                   )}
                 </div>
                 {i === 0 ? (
-                  <div className="mt-1.5 flex flex-col items-center justify-center gap-0.5">
-                    <div className="font-bold text-slate-900">
-                      {metadata.teacherName || '—'}
-                    </div>
-                    {(template.headerConfig.teacherSignatureMode || 'manual') === 'image' ? (
-                      template.headerConfig.teacherSignatureImage ? (
-                        <img
-                          src={template.headerConfig.teacherSignatureImage}
-                          alt="توقيع الأستاذ"
-                          className="mx-auto mt-0.5 max-h-9 max-w-[120px] object-contain"
-                        />
-                      ) : null
-                    ) : template.headerConfig.teacherSignatureText?.trim() ? (
-                      <div
-                        className="mt-0.5 font-serif text-[11px] font-bold italic"
-                        style={{ color: accent }}
-                      >
-                        {template.headerConfig.teacherSignatureText.trim()}
+                  <div className="mt-1.5 flex items-center justify-between gap-2 px-1">
+                    <div className="min-w-0 text-start">
+                      <div className="truncate font-bold text-slate-900">
+                        {metadata.teacherName || '—'}
                       </div>
-                    ) : null}
+                    </div>
+                    <div className="flex shrink-0 items-center justify-center">
+                      {(template.headerConfig.teacherSignatureMode || 'manual') === 'image' ? (
+                        template.headerConfig.teacherSignatureImage ? (
+                          <img
+                            src={template.headerConfig.teacherSignatureImage}
+                            alt="توقيع الأستاذ"
+                            className="max-h-11 max-w-[120px] object-contain"
+                          />
+                        ) : (
+                          <div className="w-20 border-b border-dotted border-slate-400 pt-3" />
+                        )
+                      ) : template.headerConfig.teacherSignatureText?.trim() ? (
+                        <div
+                          className="font-serif text-[11.5px] font-bold italic leading-tight"
+                          style={{ color: accent }}
+                        >
+                          {template.headerConfig.teacherSignatureText.trim()}
+                        </div>
+                      ) : (
+                        <div className="w-20 border-b border-dotted border-slate-400 pt-3" />
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div className="mx-auto mt-4 w-28 border-b border-dotted border-slate-400" />

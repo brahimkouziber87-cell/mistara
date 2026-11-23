@@ -540,8 +540,11 @@ export function auditMemo142Compliance(
 
   // 4. Weighting & Official Ministry Header
   const hasWeight = (metadata.coefficient || '').trim().length > 0;
+  const trimmedMinistry = (template.headerConfig.ministryLine || '').trim();
   const officialMinistryOk =
-    !template.headerConfig.ministryLine.includes('التكوين المهني والتأهيل');
+    trimmedMinistry.length > 0 &&
+    !trimmedMinistry.includes('والرياضة') &&
+    !trimmedMinistry.includes('البحث العلمي');
   if (hasWeight && officialMinistryOk) {
     checks.push({
       id: 'admin',
@@ -555,7 +558,7 @@ export function auditMemo142Compliance(
       label: 'وزن الفرض والترويسة الوزارية',
       status: 'warn',
       detail: !officialMinistryOk
-        ? 'الترويسة تحتوي على تسمية قديمة للوزارة — حدّثها إلى «وزارة التربية الوطنية والتعليم الأولي والرياضة».'
+        ? 'الترويسة تحتوي على تسمية قديمة للوزارة — حدّثها إلى «وزارة التربية الوطنية والتعليم الأولي والتكوين المهني والتأهيل».'
         : `يرجى ضبط وزن الفرض (${track.singleExamWeightLabel} ضمن 100% فروض محروسة).`,
     });
   }

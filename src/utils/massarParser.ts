@@ -1756,7 +1756,7 @@ export function exportReportToWordDoc(
             <td style="width:36%; text-align:${oppositeAlign}; font-size:11px; line-height:1.55; vertical-align:top; direction:${template.headerConfig.includeFrenchHeader && lang === 'ar' ? 'ltr' : labels.dir};">
               ${
                 template.headerConfig.includeFrenchHeader && lang === 'ar'
-                  ? `<strong>Royaume du Maroc</strong><br/>Ministère de l'Éducation Nationale, du Préscolaire et des Sports<br/>Année scolaire : ${esc(metadata.schoolYear || '—')}<br/>Matière : ${esc(metadata.subject || '—')}<br/>Classe : ${esc(metadata.className || '—')}${metadata.level ? ` (${esc(metadata.level)})` : ''}`
+                  ? `<strong>Royaume du Maroc</strong><br/>${esc(getReportLabels('fr').ministryLine)}<br/>Année scolaire : ${esc(metadata.schoolYear || '—')}<br/>Matière : ${esc(metadata.subject || '—')}<br/>Classe : ${esc(metadata.className || '—')}${metadata.level ? ` (${esc(metadata.level)})` : ''}`
                   : `<div style="text-align:${oppositeAlign};"><strong>${esc(labels.subjectPrefix)}</strong> ${esc(metadata.subject || '—')}<br/><strong>${esc(labels.levelLabel)}:</strong> ${esc(metadata.level || metadata.cycle || '—')}<br/><strong>${esc(labels.classLabel)}:</strong> ${esc(metadata.className || '—')}<br/><strong>${esc(labels.teacherLabel)}:</strong> ${esc(metadata.teacherName || '—')}<br/><span style="font-size:10px; color:#475569;">${esc(labels.memoRefLabel)}</span></div>`
               }
             </td>
@@ -2167,21 +2167,25 @@ export function exportReportToWordDoc(
                   const safeSigImg = /^data:image\/(png|jpeg|jpg|webp|gif);base64,[A-Za-z0-9+/=\s]+$/i.test(rawSigImg)
                     ? rawSigImg
                     : '';
-                  const teacherSigHtml =
+                  const teacherSigCellHtml =
                     i === 0
                       ? sigMode === 'image'
                         ? safeSigImg
-                          ? `<div style="margin-top:4px;"><img src="${safeSigImg}" alt="توقيع الأستاذ" style="max-height:36px; max-width:120px;" /></div>`
-                          : ''
+                          ? `<img src="${safeSigImg}" alt="توقيع الأستاذ" style="max-height:42px; max-width:120px;" />`
+                          : '<span style="color:#94a3b8;">.............</span>'
                         : template.headerConfig.teacherSignatureText?.trim()
-                        ? `<div style="font-size:10.5px; font-style:italic; font-weight:bold; color:${accent}; margin-top:3px;">${esc(template.headerConfig.teacherSignatureText.trim())}</div>`
-                        : ''
+                        ? `<span style="font-size:10.5px; font-style:italic; font-weight:bold; color:${accent};">${esc(template.headerConfig.teacherSignatureText.trim())}</span>`
+                        : '<span style="color:#94a3b8;">.............</span>'
                       : '';
                   return `
-                <td style="border:1px solid #cbd5e1; padding:6px 6px 14px; vertical-align:top; background:#f8fafc;">
+                <td style="border:1px solid #cbd5e1; padding:6px 8px 10px; vertical-align:top; background:#f8fafc;">
                   <strong style="color:${accent};">${esc(sigLabel)}</strong>
                   ${sigSub ? `<div style="font-size:9px; color:#475569; margin-top:2px;">${esc(sigSub)}</div>` : ''}
-                  ${i === 0 ? `<div style="font-size:10px; font-weight:bold; margin-top:6px;">${esc(metadata.teacherName || '—')} (${esc(metadata.correctionDate || '—')})</div>${teacherSigHtml}` : `<div style="font-size:9px; color:#64748b; margin-top:12px;">${esc(lang === 'ar' ? sig.page2Footer || '' : '')}</div>`}
+                  ${
+                    i === 0
+                      ? `<table style="width:100%; border-collapse:collapse; margin-top:6px;"><tr><td style="text-align:${textAlign}; vertical-align:middle;"><div style="font-size:10px; font-weight:bold;">${esc(metadata.teacherName || '—')}</div><div style="font-size:8.5px; color:#64748b;">${esc(metadata.correctionDate || '—')}</div></td><td style="text-align:${oppositeAlign}; vertical-align:middle;">${teacherSigCellHtml}</td></tr></table>`
+                      : `<div style="font-size:9px; color:#64748b; margin-top:12px;">${esc(lang === 'ar' ? sig.page2Footer || '' : '')}</div>`
+                  }
                 </td>`;
                 })
                 .join('')}
@@ -2269,22 +2273,25 @@ export function exportReportToWordDoc(
                   const safeSigImg = /^data:image\/(png|jpeg|jpg|webp|gif);base64,[A-Za-z0-9+/=\s]+$/i.test(rawSigImg)
                     ? rawSigImg
                     : '';
-                  const teacherSigHtml =
+                  const teacherSigCellHtml =
                     i === 0
                       ? sigMode === 'image'
                         ? safeSigImg
-                          ? `<div style="margin-top:4px;"><img src="${safeSigImg}" alt="توقيع الأستاذ" style="max-height:38px; max-width:125px;" /></div>`
-                          : ''
+                          ? `<img src="${safeSigImg}" alt="توقيع الأستاذ" style="max-height:44px; max-width:125px;" />`
+                          : '<span style="color:#94a3b8;">.............</span>'
                         : template.headerConfig.teacherSignatureText?.trim()
-                        ? `<div style="font-size:11px; font-style:italic; font-weight:bold; color:${accent}; margin-top:3px;">${esc(template.headerConfig.teacherSignatureText.trim())}</div>`
-                        : ''
+                        ? `<span style="font-size:11px; font-style:italic; font-weight:bold; color:${accent};">${esc(template.headerConfig.teacherSignatureText.trim())}</span>`
+                        : '<span style="color:#94a3b8;">.............</span>'
                       : '';
                   return `
-                <td style="border:1px solid #cbd5e1; padding:6px 6px 14px; vertical-align:top; background:#f8fafc;">
+                <td style="border:1px solid #cbd5e1; padding:6px 8px 10px; vertical-align:top; background:#f8fafc;">
                   <strong style="color:${accent};">${esc(sigLabel)}</strong>
                   ${sigSub ? `<div style="font-size:9.5px; color:#64748b; margin-top:2px;">${esc(sigSub)}</div>` : ''}
-                  ${i === 0 && metadata.teacherName ? `<div style="font-size:10.5px; font-weight:bold; margin-top:6px;">${esc(metadata.teacherName)}</div>` : ''}
-                  ${teacherSigHtml}
+                  ${
+                    i === 0
+                      ? `<table style="width:100%; border-collapse:collapse; margin-top:6px;"><tr><td style="text-align:${textAlign}; vertical-align:middle; font-size:10.5px; font-weight:bold;">${esc(metadata.teacherName || '—')}</td><td style="text-align:${oppositeAlign}; vertical-align:middle;">${teacherSigCellHtml}</td></tr></table>`
+                      : ''
+                  }
                 </td>`;
                 })
                 .join('')}
@@ -2481,7 +2488,7 @@ export function exportGradebookToExcel(
 
   // Sheet 1: Sequential + Merit Gradebook
   const rosterRows: (string | number)[][] = [
-    ['المملكة المغربية — وزارة التربية الوطنية والتعليم الأولي والرياضة'],
+    ['المملكة المغربية — وزارة التربية الوطنية والتعليم الأولي والتكوين المهني والتأهيل'],
     [
       `المؤسسة: ${metadata.school || '—'}`,
       `المادة: ${metadata.subject || '—'}`,

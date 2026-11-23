@@ -114,7 +114,7 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
       ...prev,
       headerConfig: {
         ...prev.headerConfig,
-        ministryLine: 'وزارة التربية الوطنية والتعليم الأولي والرياضة',
+        ministryLine: 'وزارة التربية الوطنية والتعليم الأولي والتكوين المهني والتأهيل',
         reportSubtitle:
           'تقرير إحصائي وتشخيصي لنتائج الفرض المحروس وفق مذكرة التقويم (الرياضيات)',
       },

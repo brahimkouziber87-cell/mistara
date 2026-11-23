@@ -174,7 +174,7 @@ const AR_LABELS: LocalizedReportLabels = {
   lang: 'ar',
   dir: 'rtl',
   countryLine: 'المملكة المغربية',
-  ministryLine: 'وزارة التربية الوطنية والتعليم الأولي والرياضة',
+  ministryLine: 'وزارة التربية الوطنية والتعليم الأولي والتكوين المهني والتأهيل',
   defaultReportTitle: 'بطاقة تقرير وتتبع الفرض المحروس',
   defaultReportSubtitle: 'وثيقة بيداغوجية رسمية - مطابقة لمقتضيات مذكرة التقويم والتوجيهات التربوية الرسمية',
   defaultAppendixTitle: 'كشف النقط الرسمي والترتيب الاستحقاقي وتفييء مجموعات الحاجة',
@@ -333,7 +333,7 @@ const FR_LABELS: LocalizedReportLabels = {
   dir: 'ltr',
   countryLine: 'Royaume du Maroc',
   ministryLine:
-    "Ministère de l'Éducation Nationale, du Préscolaire et des Sports",
+    "Ministère de l'Éducation Nationale, du Préscolaire, de la Formation Professionnelle et de la Qualification",
   defaultReportTitle: 'Rapport d’Évaluation et de Suivi du Devoir Surveillé',
   defaultReportSubtitle:
     'Document pédagogique officiel (Sections Internationales BIOF / APIC) — Conforme aux orientations ministérielles',
@@ -495,7 +495,8 @@ const EN_LABELS: LocalizedReportLabels = {
   lang: 'en',
   dir: 'ltr',
   countryLine: 'Kingdom of Morocco',
-  ministryLine: 'Ministry of National Education, Preschool and Sports',
+  ministryLine:
+    'Ministry of National Education, Preschool, Vocational Training and Qualification',
   defaultReportTitle: 'Supervised Exam Assessment & Follow-Up Report',
   defaultReportSubtitle:
     'Official Pedagogical Document (International Section) — Aligned with Assessment Guidelines',

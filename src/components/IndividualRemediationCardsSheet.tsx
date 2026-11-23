@@ -1007,29 +1007,33 @@ export const IndividualRemediationCardsSheet: React.FC<
                           config.showParentSignature ? 'grid-cols-3' : 'grid-cols-2'
                         } gap-1.5 text-center text-[7.5px]`}
                       >
-                        <div className="rounded border border-slate-200 bg-slate-50/50 px-1.5 py-1 flex flex-col items-center justify-between">
+                        <div className="rounded border border-slate-200 bg-slate-50/50 px-1.5 py-1 flex flex-col justify-between">
                           <div className="font-bold" style={{ color: accent }}>
                             {labels.cardSigTeacher}
                           </div>
-                          <div className="mt-0.5 truncate font-semibold text-slate-800 max-w-full">
-                            {metadata.teacherName || '....................'}
-                          </div>
-                          {(template.headerConfig.teacherSignatureMode || 'manual') === 'image' ? (
-                            template.headerConfig.teacherSignatureImage ? (
-                              <img
-                                src={template.headerConfig.teacherSignatureImage}
-                                alt="توقيع الأستاذ"
-                                className="mx-auto mt-0.5 max-h-4 max-w-[75px] object-contain"
-                              />
-                            ) : null
-                          ) : template.headerConfig.teacherSignatureText?.trim() ? (
-                            <div
-                              className="mt-0.5 truncate font-serif text-[8px] font-bold italic max-w-full"
-                              style={{ color: accent }}
-                            >
-                              {template.headerConfig.teacherSignatureText.trim()}
+                          <div className="mt-0.5 flex items-center justify-between gap-1">
+                            <div className="truncate text-start font-semibold text-slate-800">
+                              {metadata.teacherName || '..........'}
                             </div>
-                          ) : null}
+                            <div className="flex shrink-0 items-center justify-center">
+                              {(template.headerConfig.teacherSignatureMode || 'manual') === 'image' ? (
+                                template.headerConfig.teacherSignatureImage ? (
+                                  <img
+                                    src={template.headerConfig.teacherSignatureImage}
+                                    alt="توقيع الأستاذ"
+                                    className="max-h-5 max-w-[68px] object-contain"
+                                  />
+                                ) : null
+                              ) : template.headerConfig.teacherSignatureText?.trim() ? (
+                                <div
+                                  className="max-w-[70px] truncate font-serif text-[8px] font-bold italic"
+                                  style={{ color: accent }}
+                                >
+                                  {template.headerConfig.teacherSignatureText.trim()}
+                                </div>
+                              ) : null}
+                            </div>
+                          </div>
                         </div>
 
                         <div className="rounded border border-slate-200 bg-slate-50/50 px-1.5 py-1">
@@ -1123,13 +1127,14 @@ export function buildRemediationCardsWordSectionHtml(
   const teacherCardSigHtml =
     (template.headerConfig.teacherSignatureMode || 'manual') === 'image'
       ? safeSigImg
-        ? `<div style="margin-top:3px;"><img src="${safeSigImg}" alt="توقيع الأستاذ" style="max-height:24px; max-width:90px;" /></div>`
-        : ''
+        ? `<img src="${safeSigImg}" alt="توقيع الأستاذ" style="max-height:28px; max-width:95px;" />`
+        : '<span style="color:#94a3b8;">...........</span>'
       : template.headerConfig.teacherSignatureText?.trim()
-      ? `<div style="font-size:8.5pt; font-style:italic; font-weight:bold; color:${accent}; margin-top:2px;">${esc(template.headerConfig.teacherSignatureText.trim())}</div>`
-      : '';
+      ? `<span style="font-size:8.5pt; font-style:italic; font-weight:bold; color:${accent};">${esc(template.headerConfig.teacherSignatureText.trim())}</span>`
+      : '<span style="color:#94a3b8;">...........</span>';
 
   const textAlign = labels.dir === 'rtl' ? 'right' : 'left';
+  const oppAlign = labels.dir === 'rtl' ? 'left' : 'right';
   const cardsHtml = cardsData
     .map(
       (c, i) => `
@@ -1139,7 +1144,7 @@ export function buildRemediationCardsWordSectionHtml(
             <td style="font-weight:bold; font-size:11pt; color:${accent};">
               ${esc(labels.cardBadgePrefix)}${i + 1} — ${esc(c.groupLabel)}
             </td>
-            <td style="text-align:${labels.dir === 'rtl' ? 'left' : 'right'}; font-size:9pt; color:#475569;">
+            <td style="text-align:${oppAlign}; font-size:9pt; color:#475569;">
               ${esc(metadata.school || '')} · ${esc(metadata.subject || '')} · ${esc(labels.classLabel)} ${esc(metadata.className || '')} · ${esc(metadata.examNumber || '')}
             </td>
           </tr>
@@ -1176,7 +1181,15 @@ export function buildRemediationCardsWordSectionHtml(
         }
         <table style="width:100%; border-collapse:collapse; margin-top:6px; font-size:9pt; text-align:center;">
           <tr>
-            <td style="border:1px solid #cbd5e1; padding:6px;"><strong>${esc(labels.cardSigTeacher)}:</strong><br/>${esc(metadata.teacherName || '................')}${teacherCardSigHtml}</td>
+            <td style="border:1px solid #cbd5e1; padding:6px;">
+              <strong>${esc(labels.cardSigTeacher)}</strong>
+              <table style="width:100%; border-collapse:collapse; margin-top:4px;">
+                <tr>
+                  <td style="text-align:${textAlign}; vertical-align:middle; font-weight:bold; font-size:9pt;">${esc(metadata.teacherName || '—')}</td>
+                  <td style="text-align:${oppAlign}; vertical-align:middle;">${teacherCardSigHtml}</td>
+                </tr>
+              </table>
+            </td>
             <td style="border:1px solid #cbd5e1; padding:6px;"><strong>${esc(labels.cardSigStudent)}:</strong><br/>................</td>
             ${
               config.showParentSignature

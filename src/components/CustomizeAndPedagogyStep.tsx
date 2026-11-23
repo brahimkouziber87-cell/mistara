@@ -1584,7 +1584,7 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
                         {[
                           {
                             label: 'التسمية الرسمية للوزارة',
-                            value: 'وزارة التربية الوطنية والتعليم الأولي والرياضة',
+                            value: 'وزارة التربية الوطنية والتعليم الأولي والتكوين المهني والتأهيل',
                           },
                           {
                             label: 'الصيغة المختصرة',

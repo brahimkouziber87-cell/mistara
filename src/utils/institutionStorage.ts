@@ -74,6 +74,18 @@ function isValidFontFamily(val: unknown): val is ReportFontFamily {
   return typeof val === 'string' && VALID_FONT_FAMILIES.includes(val as ReportFontFamily);
 }
 
+export function migrateLegacyMinistryLine(text: string): string {
+  return text
+    .replace(
+      /وزارة التربية الوطنية والتعليم الأولي والرياضة/g,
+      'وزارة التربية الوطنية والتعليم الأولي والتكوين المهني والتأهيل'
+    )
+    .replace(
+      /وزارة التربية الوطنية والتكوين المهني والتعليم العالي والبحث العلمي/g,
+      'وزارة التربية الوطنية والتعليم الأولي والتكوين المهني والتأهيل'
+    );
+}
+
 function isValidNumber(val: unknown): val is number {
   return typeof val === 'number' && Number.isFinite(val) && val >= 0 && val <= 20;
 }
@@ -274,7 +286,7 @@ export function getInitialTemplate(): ReportTemplateSchema {
       ministryLine:
         typeof saved.headerConfig?.ministryLine === 'string' &&
         saved.headerConfig.ministryLine.trim()
-          ? saved.headerConfig.ministryLine
+          ? migrateLegacyMinistryLine(saved.headerConfig.ministryLine)
           : base.headerConfig.ministryLine,
       reportLanguage:
         saved.headerConfig?.reportLanguage === 'fr' ||
@@ -525,11 +537,7 @@ export function loadWorkspaceDraft(): WorkspaceDraft | null {
     let template = baseTpl;
     if (rawTpl && typeof rawTpl === 'object') {
       const migrateLegacyText = (text: string) =>
-        text
-          .replace(
-            /وزارة التربية الوطنية والتعليم الأولي والتكوين المهني والتأهيل/g,
-            'وزارة التربية الوطنية والتعليم الأولي والرياضة'
-          )
+        migrateLegacyMinistryLine(text)
           .replace(/للمذكرة الوزارية(?:\s*رقم)?\s*142(?:[-/]08)?/g, 'لمذكرة التقويم')
           .replace(/المذكرة الوزارية(?:\s*رقم)?\s*142(?:[-/]08)?/g, 'مذكرة التقويم')
           .replace(/المذكرة\s*142(?:[-/]08)?/g, 'مذكرة التقويم')

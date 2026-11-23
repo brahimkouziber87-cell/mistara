@@ -6,6 +6,7 @@ import {
   ReportSection,
   ReportTemplateSchema,
 } from '../types/report';
+import { migrateLegacyMinistryLine } from './institutionStorage';
 
 export interface DocxTemplateImportResult {
   templatePatch: Partial<ReportTemplateSchema>;
@@ -79,12 +80,13 @@ export function parseDocxTemplateLocally(
   const language = detectDocxLanguage(cleanText);
   const labels = getReportLabels(language);
 
-  const ministryLine =
+  const rawMinistryLine =
     extractLineMatch(lines, [
       /(وزارة التربية الوطنية[^\n]{0,80})/,
       /(Minist[èe]re de l['’]Éducation[^\n]{0,90})/i,
       /(Ministry of National Education[^\n]{0,90})/i,
     ]) || labels.ministryLine;
+  const ministryLine = migrateLegacyMinistryLine(rawMinistryLine);
 
   const academy = extractLineMatch(lines, [
     /(?:الأكاديمية الجهوية[^:：\n]*[:：]?\s*)(.+)/,

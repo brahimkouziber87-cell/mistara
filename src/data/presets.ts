@@ -301,7 +301,7 @@ export const TEMPLATE_PRESETS: ReportTemplateSchema[] = [
     headerConfig: {
       layout: 'three-column-moroccan',
       countryLine: 'المملكة المغربية',
-      ministryLine: 'وزارة التربية الوطنية والتعليم الأولي والرياضة',
+      ministryLine: 'وزارة التربية الوطنية والتعليم الأولي والتكوين المهني والتأهيل',
       includeFrenchHeader: false,
       reportTitle: 'بطاقة تقرير وتتبع الفرض المحروس',
       reportSubtitle:
@@ -423,7 +423,7 @@ export const TEMPLATE_PRESETS: ReportTemplateSchema[] = [
     headerConfig: {
       layout: 'three-column-moroccan',
       countryLine: 'المملكة المغربية',
-      ministryLine: 'وزارة التربية الوطنية والتعليم الأولي والرياضة',
+      ministryLine: 'وزارة التربية الوطنية والتعليم الأولي والتكوين المهني والتأهيل',
       includeFrenchHeader: true,
       reportTitle: 'تقرير حول نتائج الفرض المحروس',
       reportSubtitle: 'دراسة إحصائية وتشخيص تربوي لنتائج المتعلمين وخطة الدعم والمعالجة',
