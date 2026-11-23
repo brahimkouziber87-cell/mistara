@@ -404,6 +404,12 @@ export default function App() {
     );
   };
 
+  const handleUpdateStudentName = (id: string, fullName: string) => {
+    setStudents((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, fullName } : s))
+    );
+  };
+
   const handleAddStudent = (fullName: string, score: number | null, isAbsent: boolean) => {
     setStudents((prev) => {
       const nextOrder = prev.reduce((max, s) => Math.max(max, s.order || 0), 0) + 1;
@@ -656,41 +662,40 @@ export default function App() {
 
       <main className="mx-auto max-w-[1320px] px-4 pt-4 pb-24 md:py-5 sm:px-6 print:max-w-none print:p-0">
         {/* Clean Single-Elevation Workspace Context & Archive Utility Bar */}
-        <div className="no-print mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200/90 bg-white px-4 py-2.5">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0 text-xs">
+        <div className="no-print mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200/90 bg-white px-4 py-2.5 shadow-2xs">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 min-w-0 text-xs">
             {students.length > 0 ? (
               <>
-                <span className="font-bold text-slate-900">
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-slate-900 px-2.5 py-1 font-bold text-white">
                   {metadata.className || 'قسم نشط'}
                 </span>
                 {metadata.subject && (
-                  <>
-                    <span aria-hidden="true" className="text-slate-300">·</span>
-                    <span className="font-semibold text-teal-800">{metadata.subject}</span>
-                  </>
+                  <span className="inline-flex items-center rounded-md border border-teal-200 bg-teal-50/80 px-2 py-0.5 font-bold text-teal-900">
+                    {metadata.subject}
+                  </span>
                 )}
                 {metadata.examNumber && (
-                  <>
-                    <span aria-hidden="true" className="text-slate-300">·</span>
-                    <span className="text-slate-600">{metadata.examNumber}</span>
-                  </>
+                  <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 font-semibold text-slate-700">
+                    {metadata.examNumber}
+                  </span>
                 )}
                 <span aria-hidden="true" className="text-slate-300">·</span>
                 <span className="font-mono font-semibold text-slate-700 tabular-nums">
                   {stats.present}/{stats.total} حاضر
+                  {stats.absent > 0 ? ` (${stats.absent} غائب)` : ''}
                 </span>
                 {stats.present > 0 && (
                   <>
                     <span aria-hidden="true" className="text-slate-300">·</span>
-                    <span className="font-mono font-bold text-teal-800 tabular-nums">
-                      المعدل {stats.average.toFixed(2)}/20 ({stats.passRate.toFixed(0)}%)
+                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 font-mono font-bold text-emerald-800 tabular-nums">
+                      المعدل {stats.average.toFixed(2)}/20 · التحكم {stats.passRate.toFixed(0)}%
                     </span>
                   </>
                 )}
               </>
             ) : (
               <span className="text-slate-500">
-                منظومة إعداد تقارير الفروض المحروسة وملفات التفتيش وفق مذكرة التقويم — ارفع ملف مسار للبدء
+                منظومة إعداد تقارير الفروض المحروسة وملفات التفتيش لأستاذ الرياضيات بالثانوي التأهيلي — ارفع ملف مسار للبدء
               </span>
             )}
           </div>
@@ -741,6 +746,7 @@ export default function App() {
             onUpdateMetadata={(patch) => setMetadata((prev) => ({ ...prev, ...patch }))}
             onClearData={handleClearData}
             onUpdateStudentScore={handleUpdateStudentScore}
+            onUpdateStudentName={handleUpdateStudentName}
             onAddStudent={handleAddStudent}
             onAddAbsentStudents={handleAddAbsentStudents}
             onUpdateObservation={handleUpdateObservation}

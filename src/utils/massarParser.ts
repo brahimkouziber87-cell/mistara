@@ -2266,7 +2266,7 @@ export function exportReportToWordDoc(
   });
 
   // Optional Item & Competency Analysis Matrix Word Section
-  const presentStudentsList = students.filter((s) => !s.isAbsent);
+  const presentStudentsList = students.filter((s) => !s.isAbsent && s.score !== null);
   const itemMatrixHtml =
     itemDefinitions.length > 0
       ? `
@@ -2546,7 +2546,7 @@ export function exportGradebookToExcel(
 
   // Sheet 3: Item/Competency Matrix when exercises exist
   if (itemDefinitions.length > 0) {
-    const presentStudents = students.filter((s) => !s.isAbsent);
+    const presentStudents = students.filter((s) => !s.isAbsent && s.score !== null);
     const matrixRows: (string | number)[][] = [
       ['شبكة تحليل النتائج حسب التمارين والكفايات المقومة'],
       ['التمرين', 'الكفاية المستهدفة', 'النقطة القصوى', 'متوسط القسم', 'نسبة التحكم (%)'],

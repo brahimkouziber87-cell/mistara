@@ -1,17 +1,21 @@
 import * as XLSX from 'xlsx';
+import { matchCompetencyBankSelection, COMPETENCY_FRAMEWORK_BANK } from '../data/competencyBank';
 import {
   ArchivedClassProject,
+  ComputedStats,
   ExamItemDefinition,
   ItemCompetencyStat,
   MassarMetadata,
+  PedagogicalContent,
   PostRemediationImpactSummary,
   PostRemediationStudentDelta,
   PostSupportStatus,
+  ReportLanguage,
   ReportTemplateSchema,
   StudentItemScores,
   StudentRecord,
 } from '../types/report';
-import { extractExamNumberFromHeader } from './massarParser';
+import { computeDocimologicalSummary, extractExamNumberFromHeader } from './massarParser';
 
 export interface StudentWeakItemDetail {
   item: ExamItemDefinition;
@@ -26,7 +30,7 @@ export function computeItemMatrixStats(
   masteryThresholdPct = 50
 ): ItemCompetencyStat[] {
   const presentIds = new Set(
-    students.filter((s) => !s.isAbsent).map((s) => s.id)
+    students.filter((s) => !s.isAbsent && s.score !== null).map((s) => s.id)
   );
 
   return itemDefinitions.map((item) => {
@@ -879,4 +883,259 @@ export function computePostRemediationImpact(
     studentRows,
   };
 }
+
+// -----------------------------------------------------------------------------
+// Pillar 3: Local Smart Pedagogical & Didactic Diagnosis Generator (Offline/Fallback)
+// -----------------------------------------------------------------------------
+
+export function buildSmartLocalPedagogicalDiagnosis(params: {
+  metadata: MassarMetadata;
+  stats: ComputedStats;
+  students: StudentRecord[];
+  passThreshold: number;
+  excellenceThreshold: number;
+  language: ReportLanguage;
+  itemDefinitions?: ExamItemDefinition[];
+  studentItemScores?: StudentItemScores;
+}): PedagogicalContent {
+  const {
+    metadata,
+    stats,
+    students,
+    passThreshold,
+    excellenceThreshold,
+    language,
+    itemDefinitions = [],
+    studentItemScores = {},
+  } = params;
+
+  const docimology = computeDocimologicalSummary(stats, passThreshold, excellenceThreshold);
+  const bankMatch = matchCompetencyBankSelection(metadata);
+  const bankUnit =
+    COMPETENCY_FRAMEWORK_BANK.find((u) => u.id === bankMatch.unitId) ||
+    COMPETENCY_FRAMEWORK_BANK[0];
+
+  const itemStats =
+    itemDefinitions.length > 0
+      ? computeItemMatrixStats(students, itemDefinitions, studentItemScores, 50)
+      : [];
+  const evaluatedItems = itemStats.filter((it) => it.evaluatedCount > 0);
+  const weakItems = evaluatedItems
+    .filter((it) => it.masteryRate < 60)
+    .sort((a, b) => a.masteryRate - b.masteryRate);
+  const strongItems = evaluatedItems
+    .filter((it) => it.masteryRate >= 65)
+    .sort((a, b) => b.masteryRate - a.masteryRate);
+
+  const avgStr = stats.present > 0 ? stats.average.toFixed(2) : '10.00';
+  const medStr = stats.present > 0 ? stats.median.toFixed(2) : '10.00';
+  const stdStr = stats.present > 0 ? stats.stdDev.toFixed(2) : '2.00';
+  const passRateStr = stats.present > 0 ? stats.passRate.toFixed(1) : '50.0';
+  const excCount = stats.topStudents.length;
+  const failCount = stats.failed;
+  const consCount = Math.max(0, stats.passed - excCount);
+
+  if (language === 'fr') {
+    const isStrong = stats.passRate >= 65;
+    const isModerate = stats.passRate >= 45 && stats.passRate < 65;
+    return {
+      generalObservation: isStrong
+        ? `L’analyse docimologique du ${metadata.examNumber || 'devoir'} (${metadata.className || 'classe'}) révèle une maîtrise globale satisfaisante : moyenne de ${avgStr}/20 (médiane : ${medStr} ; σ = ${stdStr}) et taux de réussite de ${passRateStr}% (${stats.passed}/${stats.present} présents), avec ${excCount} élève(s) en pôle d’excellence contre ${failCount} nécessitant un soutien ciblé.`
+        : isModerate
+        ? `Les résultats du ${metadata.examNumber || 'devoir'} traduisent une maîtrise contrastée (moyenne : ${avgStr}/20 ; médiane : ${medStr} ; σ = ${stdStr} ; réussite : ${passRateStr}%), mettant en évidence un écart entre un groupe performant (${excCount} élève(s)) et ${failCount} élève(s) sous le seuil de ${passThreshold}/20.`
+        : `L’évaluation fait ressortir un besoin prioritaire de remédiation (moyenne : ${avgStr}/20 ; taux de réussite : ${passRateStr}% ; ${failCount} élève(s) en difficulté), lié à la fragilité des prérequis fondamentaux et de la méthodologie de rédaction mathématique.`,
+      strengths: [
+        strongItems.length > 0
+          ? `Maîtrise satisfaisante de « ${strongItems[0].item.label} — ${strongItems[0].item.competency} » avec un taux de réussite de ${strongItems[0].masteryRate.toFixed(0)}%.`
+          : `Assimilation correcte des applications directes du cours chez ${stats.passed} élève(s) ayant atteint le seuil de maîtrise.`,
+        `Présence d’un noyau d’excellence (${excCount} élève(s) ≥ ${excellenceThreshold}/20) capable de dynamiser le tutorat par les pairs.`,
+        'Respect global des consignes de présentation et d’organisation de la copie.',
+      ],
+      weaknesses: [
+        ...(weakItems.length > 0
+          ? weakItems.slice(0, 2).map(
+              (w) =>
+                `Fragilité marquée sur « ${w.item.label} (${w.item.competency}) » : moyenne ${w.averageScore.toFixed(2)}/${w.item.maxScore} (${w.masteryRate.toFixed(0)}% de maîtrise).`
+            )
+          : [
+              'Imprécisions dans l’enchaînement logique des démonstrations et la justification des étapes.',
+              'Difficultés lors du passage de l’application directe aux questions de synthèse à plusieurs étapes.',
+            ]),
+        'Gestion perfectible du temps et erreurs de signes ou de calcul algébrique chez le groupe en difficulté.',
+      ].slice(0, 3),
+      programmedRemediationBullets: [
+        `Groupe de remédiation (${failCount} él.) : reprise guidée des prérequis et fiches méthodologiques graduées (Niveau 1).`,
+        `Groupe de consolidation (${consCount} él.) : exercices ciblés sur la rigueur de la rédaction et l’argumentation mathématique.`,
+        `Pôle d’excellence (${excCount} él.) : situations problèmes d’approfondissement et animation d’ateliers de tutorat par les pairs.`,
+      ],
+      remediationNotes: `Séance de correction interactive axée sur l’analyse des erreurs fréquentes, suivie de la distribution de fiches individuelles de remédiation et d’un test formatif post-soutien.`,
+      remediationActions: [
+        {
+          targetGroup: `Groupe de remédiation (< ${passThreshold}/20 — ${failCount} él.)`,
+          competencies:
+            weakItems[0]?.item.competency ||
+            'Consolidation des prérequis et application directe des règles',
+          activity:
+            weakItems[0]?.item.remediationTask ||
+            'Fiches de remédiation ciblées et exercices graduels accompagnés',
+          timeframe: 'Séance de correction + semaine suivante',
+        },
+        {
+          targetGroup: `Groupe de consolidation ([${passThreshold} - ${excellenceThreshold}[ — ${consCount} él.)`,
+          competencies: 'Rigueur du raisonnement, démonstration et rédaction structurée',
+          activity: 'Ateliers en binômes sur les questions de synthèse du devoir',
+          timeframe: 'Durant les séances d’exercices',
+        },
+        {
+          targetGroup: `Groupe d’excellence (≥ ${excellenceThreshold}/20 — ${excCount} él.)`,
+          competencies: 'Résolution de problèmes complexes et autonomie',
+          activity: 'Exercices d’approfondissement (défis) et tutorat des pairs',
+          timeframe: 'Tout au long du module',
+        },
+      ],
+    };
+  }
+
+  if (language === 'en') {
+    const isStrong = stats.passRate >= 65;
+    return {
+      generalObservation: isStrong
+        ? `Docimological analysis of ${metadata.examNumber || 'the exam'} indicates solid overall mastery: class average of ${avgStr}/20 (median: ${medStr}; σ = ${stdStr}) and pass rate of ${passRateStr}%, with ${excCount} high achiever(s) and ${failCount} student(s) requiring targeted support.`
+        : `Assessment results show heterogeneous mastery (class average: ${avgStr}/20; median: ${medStr}; σ = ${stdStr}; pass rate: ${passRateStr}%), requiring differentiated remediation for ${failCount} student(s) below the ${passThreshold}/20 threshold.`,
+      strengths: [
+        strongItems.length > 0
+          ? `Strong performance on "${strongItems[0].item.label} (${strongItems[0].item.competency})" with ${strongItems[0].masteryRate.toFixed(0)}% mastery.`
+          : `Sound grasp of direct-application procedures among ${stats.passed} students meeting the mastery threshold.`,
+        `Active high-achieving group (${excCount} students ≥ ${excellenceThreshold}/20) ready for peer mentoring.`,
+        'Structured script presentation and clear mathematical notation across upper brackets.',
+      ],
+      weaknesses: [
+        ...(weakItems.length > 0
+          ? weakItems.slice(0, 2).map(
+              (w) =>
+                `Low mastery in "${w.item.label} (${w.item.competency})": mean score ${w.averageScore.toFixed(2)}/${w.item.maxScore} (${w.masteryRate.toFixed(0)}% mastery).`
+            )
+          : [
+              'Incomplete justification steps in multi-step deductive reasoning questions.',
+              'Difficulty translating complex problem statements into algebraic or graphical models.',
+            ]),
+        'Algebraic sign errors and time allocation challenges on final synthesis items.',
+      ].slice(0, 3),
+      programmedRemediationBullets: [
+        `Intensive Support Tier (${failCount} st.): guided foundational sheets and step-by-step error correction.`,
+        `Consolidation Tier (${consCount} st.): targeted practice on formal mathematical proof and reasoning.`,
+        `Enrichment Tier (${excCount} st.): extension problems and peer-tutoring leadership.`,
+      ],
+      remediationNotes:
+        'Conduct a formative error-analysis session using student scripts, distribute individualized remediation cards, and schedule a short post-support check.',
+      remediationActions: [
+        {
+          targetGroup: `Remediation Tier (< ${passThreshold}/20 — ${failCount} st.)`,
+          competencies: weakItems[0]?.item.competency || 'Foundational prerequisites & direct rules',
+          activity: weakItems[0]?.item.remediationTask || 'Scaffolded Level-1 practice sheets',
+          timeframe: 'Correction session + next week',
+        },
+        {
+          targetGroup: `Consolidation Tier ([${passThreshold} - ${excellenceThreshold}[ — ${consCount} st.)`,
+          competencies: 'Deductive reasoning & complete step-by-step justification',
+          activity: 'Small-group collaborative problem solving',
+          timeframe: 'Regular tutorial sessions',
+        },
+        {
+          targetGroup: `Excellence Tier (≥ ${excellenceThreshold}/20 — ${excCount} st.)`,
+          competencies: 'Higher-order synthesis & non-routine problem solving',
+          activity: 'Olympiad-style extension tasks & peer mentoring',
+          timeframe: 'Ongoing unit cycle',
+        },
+      ],
+    };
+  }
+
+  // Arabic (Default Moroccan Official Pedagogical Style)
+  const isStrong = stats.passRate >= 65;
+  const isModerate = stats.passRate >= 45 && stats.passRate < 65;
+
+  const generalObservation = isStrong
+    ? `تُبرز القراءة الإحصائية والديداكتيكية لنتائج ${metadata.examNumber || 'الفرض المحروس'} (${metadata.className || 'القسم'}) تحكماً جماعياً إيجابياً في الكفايات المقومة؛ إذ بلغ المعدل العام ${avgStr}/20 (الوسيط ${medStr} · الانحراف المعياري σ=${stdStr} — ${docimology.homogeneityBadge}) بنسبة تحكم وصلت إلى ${passRateStr}% (${stats.passed} من أصل ${stats.present} حاضراً)، مع تميز ${excCount} متعلم(ة) في قطب التفوق مقابل ${failCount} في حاجة إلى مواكبة استدراكية.`
+    : isModerate
+    ? `تعكس حصيلة ${metadata.examNumber || 'الفرض المحروس'} تفاوتاً دالاً في تملك القدرات الرياضية المستهدفة (${docimology.homogeneityBadge} بـ σ=${stdStr})؛ حيث استقر معدل القسم عند ${avgStr}/20 (الوسيط ${medStr}) بنسبة تحكم بلغت ${passRateStr}%، مما يستدعي استثمار تفوق ${excCount} متعلماً في التعلم بالقرين وتخصيص دعم تفريقي لفائدة ${failCount} متعلماً دون عتبة ${passThreshold}/20.`
+    : `كشفت نتائج ${metadata.examNumber || 'الفرض المحروس'} عن تعثرات بنيوية تستوجب تدخلاً علاجياً ذا أولوية؛ إذ سجل القسم معدلاً عاماً قدره ${avgStr}/20 (الوسيط ${medStr} · σ=${stdStr}) ونسبة تحكم في حدود ${passRateStr}% (${failCount} متعلماً دون المعدل)، وهو ما يرتبط بهشاشة المكتسبات القبلية وصعوبات الترييض والاستدلال الرياضي.`;
+
+  const strengths: string[] = [];
+  if (strongItems.length > 0) {
+    strengths.push(
+      `تحكم ملموس في «${strongItems[0].item.label}: ${strongItems[0].item.competency || 'تطبيق القواعد'}» بنسبة إتقان بلغت ${strongItems[0].masteryRate.toFixed(0)}% (متوسط ${strongItems[0].averageScore.toFixed(2)}/${strongItems[0].item.maxScore}).`
+    );
+  }
+  for (const s of bankUnit.strengths) {
+    if (strengths.length < 2) strengths.push(s);
+  }
+  strengths.push(
+    excCount > 0
+      ? `بروز نواة متميزة (${excCount} تلميذاً حصلوا على ≥ ${excellenceThreshold}/20) مؤهلة لتنشيط مجموعات المواكبة بالقرين.`
+      : `تفاعل إيجابي لـ ${stats.passed} متعلماً مع أسئلة الاسترداد والتطبيق المباشر وتنظيم مقبول لأوراق التحرير.`
+  );
+
+  const weaknesses: string[] = [];
+  if (weakItems.length > 0) {
+    weakItems.slice(0, 2).forEach((w) => {
+      weaknesses.push(
+        `تعثر دال في «${w.item.label}: ${w.item.competency || 'الكفاية المقومة'}» — نسبة التحكم لم تتجاوز ${w.masteryRate.toFixed(0)}% (بمتوسط ${w.averageScore.toFixed(2)}/${w.item.maxScore} لدى ${w.weakStudentIds.length} متعلماً).`
+      );
+    });
+  }
+  for (const w of bankUnit.commonWeaknesses) {
+    if (weaknesses.length < 3) weaknesses.push(w);
+  }
+
+  const programmedRemediationBullets: string[] = [
+    `مجموعة الدعم الاستدراكي (${failCount} تلميذاً < ${passThreshold}/20): ${bankUnit.remediationBullets[0] || 'معالجة فورية للتعثرات الأساس عبر بطاقات فردية وتمارين متدرجة من المستوى الأول.'}`,
+    `مجموعة التثبيت والتجويد (${consCount} تلميذاً بين ${passThreshold} و${excellenceThreshold}): ${bankUnit.remediationBullets[1] || 'تجويد منهجية التحرير والبرهنة الرياضية وتفادي اختصار مراحل التعليل.'}`,
+    `مجموعة التميز والإغناء (${excCount} متفوقاً ≥ ${excellenceThreshold}/20): ${bankUnit.remediationBullets[2] || 'وضعيات إدماجية مركبة وتكليفهم بمواكبة زملائهم داخل ورشات التعلم بالقرين.'}`,
+  ];
+
+  const remediationNotes = `استثمار حصة التصحيح في تفكيك الأخطاء الديداكتيكية الشائعة جماعياً، مع تسليم بطاقات الدعم الفردية لـ ${failCount} متعلماً متعثراً وتخصيص رائز تقويمي قصير لقياس أثر المعالجة وتقليص الفوارق.`;
+
+  const remediationActions = [
+    {
+      targetGroup: `مجموعة الدعم الاستدراكي (< ${passThreshold}/20 — ${failCount} ت)`,
+      competencies:
+        weakItems[0]?.item.competency ||
+        bankUnit.competencies[0] ||
+        'تثبيت المكتسبات القبلية والتطبيق المباشر للقواعد والخاصيات',
+      activity:
+        weakItems[0]?.item.remediationTask ||
+        bankUnit.recommendedExerciseTask ||
+        'بطاقات دعم فردية وتمارين علاجية موجهة ومتدرجة الصعوبة',
+      timeframe: 'حصة التصحيح والدعم + الأسبوع الموالي',
+    },
+    {
+      targetGroup: `مجموعة التثبيت والتجويد ([${passThreshold} - ${excellenceThreshold}[ — ${consCount} ت)`,
+      competencies:
+        weakItems[1]?.item.competency ||
+        bankUnit.competencies[1] ||
+        'تجويد منهجية البرهنة والاستدلال وتبرير مراحل الحل بدقة',
+      activity: 'ورشات عمل ثنائية وتصحيح تفاعلي للأسئلة التوليفية على السبورة',
+      timeframe: 'أثناء الحصص الاعتيادية وأنشطة التثبيت',
+    },
+    {
+      targetGroup: `مجموعة التميز والإغناء (≥ ${excellenceThreshold}/20 — ${excCount} ت)`,
+      competencies:
+        bankUnit.competencies[2] ||
+        'حل المسائل المركبة وتنمية الاستقلالية والتفكير الاستنتاجي',
+      activity: 'وضعيات إدماجية متقدمة (تحديات) وتأطير الزملاء عبر التعلم بالقرين',
+      timeframe: 'مواكبة مستمرة طيلة المجزوءة',
+    },
+  ];
+
+  return {
+    generalObservation,
+    strengths: strengths.slice(0, 3),
+    weaknesses: weaknesses.slice(0, 3),
+    programmedRemediationBullets,
+    remediationNotes,
+    remediationActions,
+  };
+}
+
 

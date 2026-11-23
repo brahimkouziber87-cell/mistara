@@ -46,7 +46,10 @@ import {
   importDocxReportTemplate,
 } from '../utils/docxTemplateImporter';
 import { renderExamPdfAttachment } from '../utils/pdfAttachment';
-import { computeItemMatrixStats } from '../utils/pedagogicalAnalytics';
+import {
+  buildSmartLocalPedagogicalDiagnosis,
+  computeItemMatrixStats,
+} from '../utils/pedagogicalAnalytics';
 import { CompetencyBankPanel } from './CompetencyBankPanel';
 import { ItemAnalysisMatrixPanel } from './ItemAnalysisMatrixPanel';
 import { Memo142MathPanel } from './Memo142MathPanel';
@@ -96,6 +99,7 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
   const [activeTab, setActiveTab] = useState<CustomizeTab>('all');
   const [isDrafting, setIsDrafting] = useState(false);
   const [draftError, setDraftError] = useState<string | null>(null);
+  const [draftSuccessMsg, setDraftSuccessMsg] = useState<string | null>(null);
   const pdfInputRef = useRef<HTMLInputElement | null>(null);
   const docxInputRef = useRef<HTMLInputElement | null>(null);
   const [isAttachingPdf, setIsAttachingPdf] = useState(false);
@@ -152,6 +156,7 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
 
   const handleGeneratePedagogy = async () => {
     setDraftError(null);
+    setDraftSuccessMsg(null);
     setIsDrafting(true);
     try {
       const res = await fetch('/api/generate-pedagogy', {
@@ -196,7 +201,7 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'تعذر التوليد.');
+      if (!res.ok) throw new Error(data.error || 'تعذر التوليد عبر الخادم.');
 
       const ped = data.pedagogicalContent;
       onUpdateTemplate((prev) => ({
@@ -226,9 +231,25 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
             : prev.pedagogicalContent.remediationActions,
         },
       }));
-    } catch (err) {
-      setDraftError(
-        err instanceof Error ? err.message : 'حدث خطأ أثناء توليد الصياغة التربوية.'
+      setDraftSuccessMsg('تم توليد التشخيص الديداكتيكي وخطة المعالجة بنجاح عبر الذكاء الاصطناعي.');
+    } catch {
+      // Seamless fallback to Smart Local Didactic Diagnosis Engine (offline or missing API key)
+      const localPed = buildSmartLocalPedagogicalDiagnosis({
+        metadata,
+        stats,
+        students,
+        passThreshold: template.passThreshold,
+        excellenceThreshold: template.excellenceThreshold,
+        language: template.headerConfig.reportLanguage || 'ar',
+        itemDefinitions,
+        studentItemScores,
+      });
+      onUpdateTemplate((prev) => ({
+        ...prev,
+        pedagogicalContent: localPed,
+      }));
+      setDraftSuccessMsg(
+        'تم توليد التشخيص الديداكتيكي المعمق وخطة الدعم محلياً انطلاقاً من إحصائيات القسم وبنك الكفايات.'
       );
     } finally {
       setIsDrafting(false);
@@ -237,18 +258,36 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
 
   const handleApplyPedagogyScenario = (scenarioId: 'auto' | 'high' | 'mixed' | 'support') => {
     setDraftError(null);
+    setDraftSuccessMsg(null);
     const lang = template.headerConfig.reportLanguage || 'ar';
+    if (scenarioId === 'auto') {
+      const localPed = buildSmartLocalPedagogicalDiagnosis({
+        metadata,
+        stats,
+        students,
+        passThreshold: template.passThreshold,
+        excellenceThreshold: template.excellenceThreshold,
+        language: lang,
+        itemDefinitions,
+        studentItemScores,
+      });
+      onUpdateTemplate((prev) => ({
+        ...prev,
+        pedagogicalContent: localPed,
+      }));
+      setDraftSuccessMsg(
+        'تمت صياغة التشخيص الديداكتيكي وخطة الدعم تلقائياً من إحصائيات القسم الحالية.'
+      );
+      return;
+    }
     const avgStr = stats.present > 0 ? stats.average.toFixed(2) : '10.00';
     const passRateStr = stats.present > 0 ? stats.passRate.toFixed(1) : '50.0';
     const excCount = stats.topStudents.length;
     const failCount = stats.failed;
 
     if (lang === 'fr') {
-      const isGood =
-        scenarioId === 'high' || (scenarioId === 'auto' && stats.passRate >= 65);
-      const isMixed =
-        scenarioId === 'mixed' ||
-        (scenarioId === 'auto' && stats.passRate >= 45 && stats.passRate < 65);
+      const isGood = scenarioId === 'high';
+      const isMixed = scenarioId === 'mixed';
 
       const contentFr = isGood
         ? {
@@ -319,11 +358,8 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
     }
 
     if (lang === 'en') {
-      const isGood =
-        scenarioId === 'high' || (scenarioId === 'auto' && stats.passRate >= 65);
-      const isMixed =
-        scenarioId === 'mixed' ||
-        (scenarioId === 'auto' && stats.passRate >= 45 && stats.passRate < 65);
+      const isGood = scenarioId === 'high';
+      const isMixed = scenarioId === 'mixed';
 
       const contentEn = isGood
         ? {
@@ -401,54 +437,6 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
         'المكتسبات القبلية الضرورية لبناء المفاهيم الجديدة (الحساب، الإشارات، النشر والتعميل)',
       enrichment: 'وضعيات إدماجية وتحديات رياضية لتعميق مكتسبات الفئة المتفوقة',
     };
-
-    if (scenarioId === 'auto') {
-      const isGood = stats.passRate >= 65;
-      const isModerate = stats.passRate >= 45 && stats.passRate < 65;
-      onUpdateTemplate((prev) => ({
-        ...prev,
-        pedagogicalContent: {
-          ...prev.pedagogicalContent,
-          generalObservation: isGood
-            ? `أبانت نتائج الفرض عن تحكم إيجابي لمجمل المتعلمين بمعدل عام بلغ ${avgStr}/20 ونسبة تحكم وصلت إلى ${passRateStr}%، مع تسجيل ${excCount} متفوق(ة) مقابل ${failCount} في حاجة إلى مواكبة استدراكية.`
-            : isModerate
-              ? `تعكس النتائج تفاوتاً نسبياً في درجة استيعاب الكفايات المقومة بمعدل قسم ${avgStr}/20 ونسبة تحكم ${passRateStr}%، مما يستدعي دعماً تفريقياً لفائدة ${failCount} متعلماً دون عتبة التحكم.`
-              : `أفرزت نتائج الفرض حاجة ملحة لتدخل بيداغوجي علاجي؛ إذ بلغ المعدل العام ${avgStr}/20 بنسبة تحكم ${passRateStr}%، مع رصد صعوبات أساسية لدى ${failCount} متعلماً.`,
-          strengths: isGood
-            ? [
-                `نسبة تحكم إيجابية بلغت ${passRateStr}% مع حضور متميز لفئة التفوق (${excCount} تلميذاً).`,
-                `استيعاب سليم لـ${domainTerms.directApp} وتنظيم مقبول لورقة التحرير.`,
-              ]
-            : isModerate
-              ? [
-                  `تحكم مقبول في ${domainTerms.directApp} لدى الفئة الوسطى والمتفوقة.`,
-                  'انضباط نسبي لتوجيهات منهجية الإجابة وتقديم النتائج.',
-                ]
-              : [
-                  'انخراط فئة محدودة من المتعلمين في توظيف المكتسبات القبلية البسيطة.',
-                  'توفر نواة قسم قادرة على مواكبة التعلم بالقرين خلال حصص الدعم.',
-                ],
-          weaknesses: isGood
-            ? [
-                `هفوات إجرائية عابرة لدى فئة التحكم الجزئي أثناء ${domainTerms.directApp}.`,
-                `عدم استكمال ${domainTerms.reasoning} في الوضعيات المركبة.`,
-                'تفاوت في تدبير الزمن المخصص للوضعيات التوليفية الأخيرة.',
-              ]
-            : [
-                'صعوبة استحضار القواعد والمفاهيم الأساسية وتوظيفها السليم في الوضعيات المباشرة.',
-                `تعثر في ${domainTerms.representation}.`,
-                `نقص في ${domainTerms.reasoning} وتنظيم مراحل الإجابة.`,
-              ],
-          programmedRemediationBullets: [
-            `الفئة المتعثرة (${failCount} تلميذاً): برمجة أنشطة استدراكية مركزة لتثبيت التعلمات الأساسية وتصحيح التمثلات الخاطئة.`,
-            `الفئة المتوسطة: تدريبات موجهة لتجويد ${domainTerms.reasoning} بدقة.`,
-            `الفئة المتحكمة (${excCount} متفوقاً): ${domainTerms.enrichment} مع إشراكهم في تنشيط مجموعات التعلم بالقرين.`,
-          ],
-          remediationNotes: `بناءً على إحصائيات القسم (${stats.present} حاضراً، معدل ${avgStr}/20)، تقرر تخصيص حصة التصحيح لمعالجة الأخطاء الشائعة جماعياً، متبوعة بأنشطة دعم تفريقي حسب الفئات الثلاث مع تتبع دفاتر التمارين.`,
-        },
-      }));
-      return;
-    }
 
     if (scenarioId === 'high') {
       onUpdateTemplate((prev) => ({
@@ -1980,6 +1968,22 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
                   </p>
                 )}
 
+                {draftSuccessMsg && (
+                  <div className="mt-3 flex items-center justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50/85 px-3 py-2 text-xs font-semibold text-emerald-900">
+                    <span className="inline-flex items-center gap-1.5">
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                      {draftSuccessMsg}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setDraftSuccessMsg(null)}
+                      className="text-emerald-700 hover:underline cursor-pointer"
+                    >
+                      إخفاء
+                    </button>
+                  </div>
+                )}
+
                 <div className="mt-4 space-y-4">
                   <div>
                     <label className="mb-1.5 block text-xs font-bold text-emerald-800">
@@ -2282,6 +2286,176 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
                         >
                           + مقترح {idx + 1}
                         </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Differentiated Need Groups Action Table Editor (remediationActions) */}
+                  <div className="border-t border-slate-100 pt-4">
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-800">
+                          جدول تخطيط مجموعات الحاجة المبرمجة (الفئات المستهدفة والغلاف الزمني)
+                        </label>
+                        <p className="mt-0.5 text-[11px] text-slate-500">
+                          يُطبع في قسم «خطة الدعم والمعالجة» ويحدّد الأنشطة الخاصة بكل فئة تحصيلية
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onUpdateTemplate((prev) => ({
+                            ...prev,
+                            pedagogicalContent: {
+                              ...prev.pedagogicalContent,
+                              remediationActions: [
+                                ...prev.pedagogicalContent.remediationActions,
+                                {
+                                  targetGroup: 'مجموعة جديدة',
+                                  competencies: '',
+                                  activity: '',
+                                  timeframe: 'أسبوعان',
+                                },
+                              ],
+                            },
+                          }))
+                        }
+                        className="inline-flex items-center gap-1 rounded-md border border-teal-700/30 bg-teal-50/70 px-2.5 py-1 text-xs font-semibold text-teal-900 hover:bg-teal-100 cursor-pointer"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        إضافة مجموعة حاجة
+                      </button>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      {template.pedagogicalContent.remediationActions.map((row, idx) => (
+                        <div
+                          key={idx}
+                          className="rounded-lg border border-slate-200 bg-slate-50/60 p-3 space-y-2"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[11px] font-bold text-teal-800">
+                              المجموعة #{idx + 1}
+                            </span>
+                            <button
+                              type="button"
+                              aria-label="حذف المجموعة"
+                              onClick={() =>
+                                onUpdateTemplate((prev) => ({
+                                  ...prev,
+                                  pedagogicalContent: {
+                                    ...prev.pedagogicalContent,
+                                    remediationActions:
+                                      prev.pedagogicalContent.remediationActions.filter(
+                                        (_, i) => i !== idx
+                                      ),
+                                  },
+                                }))
+                              }
+                              className="text-slate-400 hover:text-red-600 cursor-pointer"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-12">
+                            <div className="sm:col-span-4">
+                              <label className="mb-0.5 block text-[10.5px] font-semibold text-slate-600">
+                                الفئة المستهدفة
+                              </label>
+                              <input
+                                type="text"
+                                value={row.targetGroup}
+                                onChange={(e) =>
+                                  onUpdateTemplate((prev) => {
+                                    const next = [...prev.pedagogicalContent.remediationActions];
+                                    next[idx] = { ...next[idx], targetGroup: e.target.value };
+                                    return {
+                                      ...prev,
+                                      pedagogicalContent: {
+                                        ...prev.pedagogicalContent,
+                                        remediationActions: next,
+                                      },
+                                    };
+                                  })
+                                }
+                                placeholder="الفئة المتعثرة (< 10/20)"
+                                className="w-full rounded border border-slate-300 bg-white px-2.5 py-1 text-xs font-semibold text-slate-900 focus:border-teal-700 focus:outline-none"
+                              />
+                            </div>
+                            <div className="sm:col-span-5">
+                              <label className="mb-0.5 block text-[10.5px] font-semibold text-slate-600">
+                                الكفايات والأهداف المستهدفة
+                              </label>
+                              <input
+                                type="text"
+                                value={row.competencies}
+                                onChange={(e) =>
+                                  onUpdateTemplate((prev) => {
+                                    const next = [...prev.pedagogicalContent.remediationActions];
+                                    next[idx] = { ...next[idx], competencies: e.target.value };
+                                    return {
+                                      ...prev,
+                                      pedagogicalContent: {
+                                        ...prev.pedagogicalContent,
+                                        remediationActions: next,
+                                      },
+                                    };
+                                  })
+                                }
+                                placeholder="الكفاية المراد تثبيتها..."
+                                className="w-full rounded border border-slate-300 bg-white px-2.5 py-1 text-xs text-slate-900 focus:border-teal-700 focus:outline-none"
+                              />
+                            </div>
+                            <div className="sm:col-span-3">
+                              <label className="mb-0.5 block text-[10.5px] font-semibold text-slate-600">
+                                الجدولة / الحيز الزمني
+                              </label>
+                              <input
+                                type="text"
+                                value={row.timeframe}
+                                onChange={(e) =>
+                                  onUpdateTemplate((prev) => {
+                                    const next = [...prev.pedagogicalContent.remediationActions];
+                                    next[idx] = { ...next[idx], timeframe: e.target.value };
+                                    return {
+                                      ...prev,
+                                      pedagogicalContent: {
+                                        ...prev.pedagogicalContent,
+                                        remediationActions: next,
+                                      },
+                                    };
+                                  })
+                                }
+                                placeholder="حصة التصحيح..."
+                                className="w-full rounded border border-slate-300 bg-white px-2.5 py-1 text-xs text-slate-900 focus:border-teal-700 focus:outline-none"
+                              />
+                            </div>
+                            <div className="sm:col-span-12">
+                              <label className="mb-0.5 block text-[10.5px] font-semibold text-slate-600">
+                                الأنشطة والإجراءات الديداكتيكية المبرمجة
+                              </label>
+                              <input
+                                type="text"
+                                value={row.activity}
+                                onChange={(e) =>
+                                  onUpdateTemplate((prev) => {
+                                    const next = [...prev.pedagogicalContent.remediationActions];
+                                    next[idx] = { ...next[idx], activity: e.target.value };
+                                    return {
+                                      ...prev,
+                                      pedagogicalContent: {
+                                        ...prev.pedagogicalContent,
+                                        remediationActions: next,
+                                      },
+                                    };
+                                  })
+                                }
+                                placeholder="حصص الدعم والتقوية مع بطاقات تمارين علاجية متدرجة..."
+                                className="w-full rounded border border-slate-300 bg-white px-2.5 py-1 text-xs text-slate-900 focus:border-teal-700 focus:outline-none"
+                              />
+                            </div>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   </div>

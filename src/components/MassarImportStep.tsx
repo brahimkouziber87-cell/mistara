@@ -46,6 +46,7 @@ interface MassarImportStepProps {
   onUpdateMetadata: (patch: Partial<MassarMetadata>) => void;
   onClearData: () => void;
   onUpdateStudentScore: (id: string, score: number | null, isAbsent: boolean) => void;
+  onUpdateStudentName?: (id: string, fullName: string) => void;
   onAddStudent: (fullName: string, score: number | null, isAbsent: boolean) => void;
   onAddAbsentStudents: (
     entries: Array<{ fullName: string; observation?: string }>
@@ -72,6 +73,7 @@ export const MassarImportStep: React.FC<MassarImportStepProps> = ({
   onUpdateMetadata,
   onClearData,
   onUpdateStudentScore,
+  onUpdateStudentName,
   onAddStudent,
   onAddAbsentStudents,
   onUpdateObservation,
@@ -91,6 +93,14 @@ export const MassarImportStep: React.FC<MassarImportStepProps> = ({
   const [showAddStudentRow, setShowAddStudentRow] = useState(false);
   const [newStudentName, setNewStudentName] = useState('');
   const [newStudentScore, setNewStudentScore] = useState('12');
+  const [editingNameId, setEditingNameId] = useState<string | null>(null);
+  const [editingNameDraft, setEditingNameDraft] = useState('');
+  const lastPresentScoresRef = useRef<Record<string, number | null>>({});
+
+  const unscoredPresentCount = useMemo(
+    () => students.filter((s) => !s.isAbsent && s.score === null).length,
+    [students]
+  );
 
   const [autoLoadEnabled, setAutoLoadEnabled] = useState<boolean>(() => {
     try {
@@ -1089,10 +1099,23 @@ export const MassarImportStep: React.FC<MassarImportStepProps> = ({
       )}
 
       {/* Full-Width 4-Column Quantitative KPI Strip */}
-      <section className="grid grid-cols-2 divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white md:grid-cols-4 md:divide-y-0 md:divide-x md:divide-x-reverse">
+      <section className="grid grid-cols-2 divide-y divide-slate-200 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xs md:grid-cols-4 md:divide-y-0 md:divide-x md:divide-x-reverse">
         <div className="p-5">
-          <div className="text-xs font-medium text-slate-500">المعدل العام للقسم</div>
-          <div className="mt-1.5 font-mono text-2xl font-bold tabular-nums text-teal-800">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-500">المعدل العام للقسم</span>
+            {stats.present > 0 && (
+              <span
+                className={`rounded-md px-2 py-0.5 text-[10.5px] font-bold ${
+                  stats.average >= passThreshold
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    : 'bg-amber-50 text-amber-800 border border-amber-200'
+                }`}
+              >
+                {stats.average >= passThreshold ? 'فوق العتبة' : 'دون العتبة'}
+              </span>
+            )}
+          </div>
+          <div className="mt-1.5 font-mono text-2xl font-extrabold tabular-nums text-teal-800">
             {stats.present > 0 ? (
               <>
                 {stats.average.toFixed(2)}{' '}
@@ -1102,53 +1125,69 @@ export const MassarImportStep: React.FC<MassarImportStepProps> = ({
               '—'
             )}
           </div>
-          <div className="mt-1 text-xs text-slate-500">
+          <div className="mt-1.5 text-xs text-slate-500">
             الوسيط:{' '}
-            <span className="font-mono tabular-nums">
+            <span className="font-mono font-semibold text-slate-700 tabular-nums">
               {stats.present > 0 ? stats.median.toFixed(2) : '—'}
             </span>{' '}
-            · الانحراف:{' '}
-            <span className="font-mono tabular-nums">
+            · الانحراف (σ):{' '}
+            <span className="font-mono font-semibold text-slate-700 tabular-nums">
               {stats.present > 0 ? stats.stdDev.toFixed(2) : '—'}
             </span>
           </div>
         </div>
 
         <div className="p-5">
-          <div className="text-xs font-medium text-slate-500">
-            الحاصلون على المعدل (≥ {passThreshold})
+          <div className="text-xs font-semibold text-slate-500">
+            نسبة التحكم (≥ {passThreshold}/20)
           </div>
-          <div className="mt-1.5 font-mono text-2xl font-bold tabular-nums text-slate-900">
+          <div className="mt-1.5 font-mono text-2xl font-extrabold tabular-nums text-slate-900">
             {stats.present > 0 ? `${stats.passRate.toFixed(1)}%` : '—'}
           </div>
-          <div className="mt-1 text-xs text-slate-500">
+          {stats.present > 0 && (
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+              <div
+                className="h-full rounded-full bg-emerald-600 transition-all"
+                style={{ width: `${Math.min(100, stats.passRate)}%` }}
+              />
+            </div>
+          )}
+          <div className="mt-1.5 text-xs text-slate-500">
             <span className="font-mono tabular-nums text-emerald-700 font-semibold">
-              {stats.passed} حاصل على المعدل
+              {stats.passed} متحكم
             </span>
             <span aria-hidden="true"> · </span>
             <span className="font-mono tabular-nums text-amber-700 font-semibold">
-              {stats.failed} دون المعدل
+              {stats.failed} متعثر
             </span>
           </div>
         </div>
 
         <div className="p-5">
-          <div className="text-xs font-medium text-slate-500">المسجلون والحضور</div>
-          <div className="mt-1.5 font-mono text-2xl font-bold tabular-nums text-slate-900">
+          <div className="text-xs font-semibold text-slate-500">البنية العددية والحضور</div>
+          <div className="mt-1.5 font-mono text-2xl font-extrabold tabular-nums text-slate-900">
             {stats.present}{' '}
             <span className="text-sm font-normal text-slate-500">/ {stats.total}</span>
           </div>
-          <div className="mt-1 text-xs text-slate-500">
-            المتغيبون عن الفرض:{' '}
+          <div className="mt-1.5 text-xs text-slate-500">
+            المتغيبون:{' '}
             <span className="font-mono font-semibold tabular-nums text-slate-900">
               {stats.absent}
             </span>
+            {unscoredPresentCount > 0 && (
+              <>
+                <span aria-hidden="true"> · </span>
+                <span className="font-semibold text-amber-700">
+                  {unscoredPresentCount} بانتظار النقطة
+                </span>
+              </>
+            )}
           </div>
         </div>
 
         <div className="p-5">
-          <div className="text-xs font-medium text-slate-500">أعلى وأدنى نقطة</div>
-          <div className="mt-1.5 font-mono text-2xl font-bold tabular-nums text-slate-900">
+          <div className="text-xs font-semibold text-slate-500">مدى النقط (الأدنى ← الأعلى)</div>
+          <div className="mt-1.5 font-mono text-2xl font-extrabold tabular-nums text-slate-900">
             {stats.present > 0 ? (
               <>
                 {Number.isInteger(stats.maxScore)
@@ -1163,10 +1202,10 @@ export const MassarImportStep: React.FC<MassarImportStepProps> = ({
               '—'
             )}
           </div>
-          <div className="mt-1 text-xs text-slate-500">
-            المتفوقون (≥ {excellenceThreshold}):{' '}
-            <span className="font-mono font-semibold tabular-nums text-slate-900">
-              {stats.topStudents.length}
+          <div className="mt-1.5 text-xs text-slate-500">
+            فئة التميز (≥ {excellenceThreshold}/20):{' '}
+            <span className="font-mono font-bold tabular-nums text-emerald-700">
+              {stats.topStudents.length} ت
             </span>
           </div>
         </div>
@@ -1431,7 +1470,7 @@ export const MassarImportStep: React.FC<MassarImportStepProps> = ({
                   <th className="px-3 py-3 w-32 text-center">النقطة / 20</th>
                   <th className="px-3 py-3">الوضعية والتقدير</th>
                   <th className="px-3 py-3 w-52">ملاحظة فردية / مبرر</th>
-                  <th className="px-3 py-3 w-28 text-center">الحضور</th>
+                  <th className="px-3 py-3 w-36 text-center">الحضور والإجراءات</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -1453,6 +1492,7 @@ export const MassarImportStep: React.FC<MassarImportStepProps> = ({
                         : st.score >= passThreshold
                         ? 'متحكم'
                         : 'دون المعدل');
+                  const isEditingThisName = editingNameId === st.id;
                   return (
                     <tr
                       key={st.id}
@@ -1464,7 +1504,55 @@ export const MassarImportStep: React.FC<MassarImportStepProps> = ({
                       <td className="px-3 py-2 font-mono text-xs tabular-nums text-slate-600">
                         {st.code}
                       </td>
-                      <td className="px-3 py-2 font-semibold text-slate-900">{st.fullName}</td>
+                      <td className="px-3 py-2 font-semibold text-slate-900">
+                        {isEditingThisName ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              autoFocus
+                              value={editingNameDraft}
+                              onChange={(e) => setEditingNameDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  const cleaned = editingNameDraft.replace(/\s+/g, ' ').trim();
+                                  if (cleaned && onUpdateStudentName) {
+                                    onUpdateStudentName(st.id, cleaned);
+                                  }
+                                  setEditingNameId(null);
+                                } else if (e.key === 'Escape') {
+                                  setEditingNameId(null);
+                                }
+                              }}
+                              onBlur={() => {
+                                const cleaned = editingNameDraft.replace(/\s+/g, ' ').trim();
+                                if (cleaned && onUpdateStudentName) {
+                                  onUpdateStudentName(st.id, cleaned);
+                                }
+                                setEditingNameId(null);
+                              }}
+                              className="w-full rounded border border-teal-700 bg-white px-2 py-0.5 text-xs font-semibold text-slate-900 focus:outline-none"
+                            />
+                          </div>
+                        ) : (
+                          <div className="group flex items-center justify-between gap-1.5">
+                            <span>{st.fullName}</span>
+                            {onUpdateStudentName && (
+                              <button
+                                type="button"
+                                title="تعديل اسم التلميذ(ة)"
+                                onClick={() => {
+                                  setEditingNameId(st.id);
+                                  setEditingNameDraft(st.fullName);
+                                }}
+                                className="opacity-0 group-hover:opacity-100 rounded p-0.5 text-slate-400 hover:bg-slate-200/70 hover:text-slate-700 transition-opacity cursor-pointer"
+                              >
+                                <Edit3 className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </td>
                       <td className="px-3 py-2 text-center">
                         <input
                           type="number"
@@ -1492,11 +1580,9 @@ export const MassarImportStep: React.FC<MassarImportStepProps> = ({
                             }
                             const num = Number.parseFloat(val);
                             if (!Number.isNaN(num)) {
-                              onUpdateStudentScore(
-                                st.id,
-                                Math.max(0, Math.min(20, num)),
-                                false
-                              );
+                              const clamped = Math.max(0, Math.min(20, num));
+                              lastPresentScoresRef.current[st.id] = clamped;
+                              onUpdateStudentScore(st.id, clamped, false);
                             }
                           }}
                           className="w-24 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-center font-mono text-sm font-semibold tabular-nums text-slate-900 focus:border-teal-700 focus:ring-2 focus:ring-teal-700/15 focus:outline-none disabled:border-amber-200 disabled:bg-amber-50/60 disabled:text-amber-800 disabled:placeholder:text-amber-800"
@@ -1534,29 +1620,49 @@ export const MassarImportStep: React.FC<MassarImportStepProps> = ({
                         />
                       </td>
                       <td className="px-3 py-2 text-center">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onUpdateStudentScore(
-                              st.id,
-                              null,
-                              !st.isAbsent
-                            )
-                          }
-                          className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 whitespace-nowrap cursor-pointer"
-                        >
-                          {st.isAbsent ? (
-                            <>
-                              <UserCheck className="h-3.5 w-3.5 text-teal-700" />
-                              حضور
-                            </>
-                          ) : (
-                            <>
-                              <UserX className="h-3.5 w-3.5 text-slate-500" />
-                              غياب
-                            </>
-                          )}
-                        </button>
+                        <div className="inline-flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!st.isAbsent) {
+                                // Switching to absent: remember current score
+                                if (st.score !== null) {
+                                  lastPresentScoresRef.current[st.id] = st.score;
+                                }
+                                onUpdateStudentScore(st.id, null, true);
+                              } else {
+                                // Restoring to present: restore remembered score if any
+                                const remembered =
+                                  st.id in lastPresentScoresRef.current
+                                    ? lastPresentScoresRef.current[st.id]
+                                    : null;
+                                onUpdateStudentScore(st.id, remembered, false);
+                              }
+                            }}
+                            className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 whitespace-nowrap cursor-pointer"
+                          >
+                            {st.isAbsent ? (
+                              <>
+                                <UserCheck className="h-3.5 w-3.5 text-teal-700" />
+                                حضور
+                              </>
+                            ) : (
+                              <>
+                                <UserX className="h-3.5 w-3.5 text-slate-500" />
+                                غياب
+                              </>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            title={`حذف ${st.fullName} من اللائحة`}
+                            aria-label={`حذف ${st.fullName}`}
+                            onClick={() => onRemoveStudent(st.id)}
+                            className="rounded-md p-1 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 cursor-pointer"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

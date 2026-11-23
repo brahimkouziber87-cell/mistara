@@ -26,6 +26,48 @@ function getGeminiClient(): GoogleGenAI {
   });
 }
 
+const GEMINI_MODEL_CANDIDATES = [
+  process.env.GEMINI_MODEL,
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-4-hydrogen',
+].filter((m): m is string => Boolean(m && m.trim()));
+
+async function generateWithFallback(
+  ai: GoogleGenAI,
+  params: {
+    contents: string;
+    systemInstruction?: string;
+    responseSchema: Record<string, unknown>;
+  }
+) {
+  let lastError: unknown = null;
+  for (const modelName of GEMINI_MODEL_CANDIDATES) {
+    try {
+      return await ai.models.generateContent({
+        model: modelName,
+        contents: params.contents,
+        config: {
+          ...(params.systemInstruction ? { systemInstruction: params.systemInstruction } : {}),
+          responseMimeType: 'application/json',
+          responseSchema: params.responseSchema,
+          ...(modelName.includes('gemini-4') || modelName.includes('2.5')
+            ? { thinkingConfig: { thinkingLevel: ThinkingLevel.LOW } }
+            : {}),
+        },
+      });
+    } catch (err) {
+      lastError = err;
+      const msg = err instanceof Error ? err.message : String(err);
+      // Only try next model if the failure is due to model not found / unsupported
+      if (!/not\s*found|404|model|unsupported|invalid\s*argument/i.test(msg)) {
+        throw err;
+      }
+    }
+  }
+  throw lastError || new Error('All Gemini model candidates failed');
+}
+
 function handleGeminiError(res: Response, err: unknown, fallbackMsg: string) {
   const message = err instanceof Error ? err.message : String(err);
   console.error('Gemini API error:', message);
@@ -242,15 +284,10 @@ ${itemLines ? `- نتائج شبكة التمارين والكفايات الم�
 6. خطة دعم ومعالجة عملية مقسمة إلى 3 فئات مستهدفة (مجموعات الحاجة) مع تحديد الكفايات والأنشطة والجدولة الزمنية.`;
     }
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-4-hydrogen',
+    const response = await generateWithFallback(ai, {
       contents: prompt,
-      config: {
-        systemInstruction,
-        responseMimeType: 'application/json',
-        responseSchema: PEDAGOGY_RESPONSE_SCHEMA,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-      },
+      systemInstruction,
+      responseSchema: PEDAGOGY_RESPONSE_SCHEMA,
     });
 
     const parsed = parseModelJson(response.text);
@@ -318,14 +355,9 @@ ${rawText}
    ["metadata_grid", "exam_content_box", "kpi_summary", "brackets_table", "brackets_and_donut_split", "chart_distribution", "top_and_struggling", "pedagogical_diagnosis", "remediation_plan", "dual_roster_merit", "signatures"]
 7. detectedNotes: 2 إلى 3 ملاحظات موجزة بالعربية تلخص بنية النموذج المستورد.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-4-hydrogen',
+    const response = await generateWithFallback(ai, {
       contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: DOCX_TEMPLATE_ANALYSIS_SCHEMA,
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-      },
+      responseSchema: DOCX_TEMPLATE_ANALYSIS_SCHEMA,
     });
 
     const parsed = parseModelJson(response.text);

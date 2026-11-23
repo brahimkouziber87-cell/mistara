@@ -738,10 +738,15 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
         }
         return (
           <div key={sec.id} className="avoid-break">
-            <div className="rounded border border-slate-300 bg-white px-3 py-2">
-              <h3 className="mb-1.5 text-[11px] font-bold" style={{ color: accent }}>
-                {labels.chartSectionTitle}:
-              </h3>
+            <div className="rounded border border-slate-300 bg-white px-3 py-1.5">
+              <div className="mb-1.5 flex items-center justify-between gap-2 border-b border-slate-200 pb-1">
+                <h3 className="text-[10.5px] font-bold" style={{ color: accent }}>
+                  {labels.chartSectionTitle}
+                </h3>
+                <span className="rounded bg-slate-100 px-2 py-0.5 text-[9px] font-semibold text-slate-700">
+                  {docimology.homogeneityLabel}
+                </span>
+              </div>
               {template.styleConfig.chartType === 'bar' ||
               template.styleConfig.chartType === 'horizontal-bar' ? (
                 <BarChartSvg
