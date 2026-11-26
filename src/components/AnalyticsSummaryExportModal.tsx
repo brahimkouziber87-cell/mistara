@@ -16,6 +16,7 @@ import {
   COMPETENCY_FRAMEWORK_BANK,
   matchCompetencyBankSelection,
 } from '../data/competencyBank';
+import { detectMathTrackFromMetadata } from '../data/memo142MathGuide';
 import {
   DEFAULT_METADATA,
   SAMPLE_CLASS_METADATA,
@@ -119,6 +120,15 @@ function buildAutoItemsAndScores(
   const bankUnit =
     COMPETENCY_FRAMEWORK_BANK.find((u) => u.id === bankMatch.unitId) ||
     COMPETENCY_FRAMEWORK_BANK[0];
+  const trackSpec = detectMathTrackFromMetadata(metadata);
+  const { directApplicationPct, familiarSituationsPct, complexProblemsPct } =
+    trackSpec.taxonomyBreakdown;
+  const famPart1Pct = Math.ceil(familiarSituationsPct / 2);
+  const famPart2Pct = Math.floor(familiarSituationsPct / 2);
+  const max1 = Math.max(1, Math.round((directApplicationPct / 100) * 20 * 2) / 2);
+  const max2 = Math.max(1, Math.round((famPart1Pct / 100) * 20 * 2) / 2);
+  const max3 = Math.max(1, Math.round((famPart2Pct / 100) * 20 * 2) / 2);
+  const max4 = Math.max(1, Math.round((20 - max1 - max2 - max3) * 2) / 2);
 
   const items: ExamItemDefinition[] =
     existingItems.length > 0
@@ -126,50 +136,59 @@ function buildAutoItemsAndScores(
       : [
           {
             id: 'auto-1',
-            label: 'التمرين 1 (استرداد وتطبيق 30%)',
+            label: `التمرين 1 (تطبيق مباشر - ${directApplicationPct}%)`,
             competency:
               bankUnit.competencies[0] ||
               'استرداد التعاريف وتطبيق القواعد الرياضية مباشرة',
-            maxScore: 6,
+            maxScore: max1,
             remediationTask:
               bankUnit.remediationBullets[0] ||
               'بطاقة تذكير بالقواعد الأساس وتمارين تطبيقية مباشرة',
           },
           {
             id: 'auto-2',
-            label: 'التمرين 2 (توظيف واستدلال 25%)',
+            label: `التمرين 2 (استدلال وتوظيف - ${famPart1Pct}%)`,
             competency:
               bankUnit.competencies[1] ||
               'توظيف المفاهيم في وضعيات مألوفة وتبرير مراحل الحل',
-            maxScore: 5,
+            maxScore: max2,
             remediationTask:
               bankUnit.remediationBullets[1] ||
               'تمارين موجهة حول صياغة البرهان الرياضي وتسلسل الاستنتاجات',
           },
           {
             id: 'auto-3',
-            label: 'التمرين 3 (معالجة جبرية/بيانية 25%)',
+            label: `التمرين 3 (ترييض ومعالجة - ${famPart2Pct}%)`,
             competency:
               bankUnit.competencies[2] ||
               'الربط بين التمثيل الجبري والبياني ومعالجة المعادلات',
-            maxScore: 5,
+            maxScore: max3,
             remediationTask:
               bankUnit.remediationBullets[2] ||
               'تدريب مرحلي على استخراج المعطيات وتأويل النتائج بيانياً',
           },
           {
             id: 'auto-4',
-            label: 'التمرين 4 (وضعية توليفية 20%)',
+            label: `التمرين 4 (وضعية مركبة - ${complexProblemsPct}%)`,
             competency:
               'حل وضعية مسألة مركبة وتوليف المكتسبات القبلية (المذكرة 142-08)',
-            maxScore: 4,
+            maxScore: max4,
             remediationTask:
               bankUnit.recommendedExerciseTask ||
               'تفكيك المسائل المركبة إلى أسئلة فرعية متدرجة',
           },
         ];
 
-  const difficultyMultipliers = [1.14, 1.03, 0.96, 0.82];
+  const totalMax = Math.max(
+    1,
+    items.reduce((sum, it) => sum + (Number(it.maxScore) || 0), 0)
+  );
+  const difficultyMultipliers = items.map((_, idx) => {
+    if (idx === 0) return 1.14;
+    if (idx === items.length - 1) return 0.82;
+    if (idx === 1) return 1.03;
+    return 0.96;
+  });
   const scores: StudentItemScores = {};
 
   for (const st of students) {
@@ -181,12 +200,23 @@ function buildAutoItemsAndScores(
     const seed = (st.order || 1) * 17;
 
     items.forEach((it, idx) => {
-      const safeMax = Math.max(0.5, Number(it.maxScore) || 5);
+      const safeMax = Math.max(0.5, Number(it.maxScore) || 20 / items.length);
       const wobble = (((seed + idx * 7) % 5) - 2) * 0.03;
       const mult = difficultyMultipliers[idx % difficultyMultipliers.length];
       const rawRatio = Math.min(1, Math.max(0, ratio * mult + wobble));
-      row[it.id] = Math.round(rawRatio * safeMax * 4) / 4;
+      row[it.id] = Math.min(safeMax, Math.max(0, Math.round(rawRatio * safeMax * 4) / 4));
     });
+
+    const targetSum = (st.score / 20) * totalMax;
+    const currentSum = items.reduce((s, it) => s + (row[it.id] ?? 0), 0);
+    if (currentSum > 0 && Math.abs(targetSum - currentSum) > 0.25) {
+      const factor = targetSum / currentSum;
+      items.forEach((it) => {
+        const safeMax = Math.max(0.5, Number(it.maxScore) || 1);
+        const scaled = Math.round((row[it.id] ?? 0) * factor * 4) / 4;
+        row[it.id] = Math.min(safeMax, Math.max(0, scaled));
+      });
+    }
 
     scores[st.id] = row;
   }
@@ -1532,68 +1562,104 @@ export const AnalyticsSummaryExportModal: React.FC<
               </div>
 
               {/* 5. EDUCATIONAL COUNCIL PEDAGOGICAL SYNTHESIS & SIGNATURES */}
-              <div className="mt-3 rounded-xl border border-teal-200 bg-teal-50/40 p-3">
-                <div className="text-[10.5px] font-extrabold text-teal-950 mb-1">
-                  رابعاً: خلاصة تركيبية وتوصيات بيداغوجية للمجلس التعليمي ومجلس القسم (وفق المذكرة 142-08)
-                </div>
-                <p className="text-[10px] leading-relaxed text-slate-800">
-                  • <strong>تشخيص منحنى غوص (142-08):</strong> سجل القسم معدلاً عاماً قدره{' '}
-                  <strong className="font-mono">{primarySource.stats.average.toFixed(2)}/20</strong>{' '}
-                  وبانحراف معياري <strong className="font-mono">σ={primarySource.stats.stdDev.toFixed(2)}</strong>{' '}
-                  ونسبة تحكم بلغت{' '}
-                  <strong className="font-mono">{primarySource.stats.passRate.toFixed(1)}%</strong> ({gaussData.diagnosisTitle}).{' '}
-                  • <strong>تشخيص رادار الكفايات:</strong>{' '}
-                  {radarItems.length > 0 && (
-                    <>
-                      سُجل أعلى تحكم في «{
-                        [...radarItems].sort((a, b) => b.masteryPct - a.masteryPct)[0]?.fullLabel
-                      }» بنسبة{' '}
-                      <strong className="font-mono">
-                        {[...radarItems].sort((a, b) => b.masteryPct - a.masteryPct)[0]?.masteryPct.toFixed(0)}%
-                      </strong>
-                      ، بينما تبرز أولوية المعالجة التربوية في «{
-                        [...radarItems].sort((a, b) => a.masteryPct - b.masteryPct)[0]?.competency
-                      }» (نسبة التحكم{' '}
-                      <strong className="font-mono">
-                        {[...radarItems].sort((a, b) => a.masteryPct - b.masteryPct)[0]?.masteryPct.toFixed(0)}%
-                      </strong>
-                      ).
-                    </>
-                  )}{' '}
-                  • <strong>التطور مقارنة بالأرشيف:</strong> سجل المعدل العام فارقاً قدره{' '}
-                  <strong className="font-mono" dir="ltr">
-                    {archiveComparisonData.deltaAverage >= 0 ? '+' : ''}
-                    {archiveComparisonData.deltaAverage.toFixed(2)}
-                  </strong>{' '}
-                  نقطة وفارقاً في نسبة التحكم قدره{' '}
-                  <strong className="font-mono" dir="ltr">
-                    {archiveComparisonData.deltaPassRate >= 0 ? '+' : ''}
-                    {archiveComparisonData.deltaPassRate.toFixed(1)}%
-                  </strong>
-                  .
-                </p>
+              {(() => {
+                const sortedRadar = [...radarItems].sort(
+                  (a, b) => b.masteryPct - a.masteryPct
+                );
+                const bestRadar = sortedRadar[0];
+                const weakestRadar = sortedRadar[sortedRadar.length - 1];
+                const sigMode =
+                  primarySource.template.headerConfig?.teacherSignatureMode || 'manual';
+                const sigImg =
+                  primarySource.template.headerConfig?.teacherSignatureImage;
+                const sigTxt =
+                  primarySource.template.headerConfig?.teacherSignatureText?.trim();
 
-                <div className="mt-2.5 grid grid-cols-3 gap-3 pt-2 border-t border-teal-200/80 text-center text-[10px] font-bold text-slate-700">
-                  <div className="rounded border border-slate-200 bg-white py-2 px-3">
-                    <div>توقيع الأستاذ(ة) المنجز(ة)</div>
-                    <div className="mt-4 text-[9px] font-normal text-slate-400">
-                      {primarySource.metadata.teacherName || '................................'}
+                return (
+                  <div className="mt-3 rounded-xl border border-teal-200 bg-teal-50/40 p-3">
+                    <div className="text-[10.5px] font-extrabold text-teal-950 mb-1">
+                      رابعاً: خلاصة تركيبية وتوصيات بيداغوجية للمجلس التعليمي ومجلس القسم (وفق المذكرة 142-08)
+                    </div>
+                    <p className="text-[10px] leading-relaxed text-slate-800">
+                      • <strong>تشخيص منحنى غوص (142-08):</strong> سجل القسم معدلاً عاماً قدره{' '}
+                      <strong className="font-mono">
+                        {primarySource.stats.average.toFixed(2)}/20
+                      </strong>{' '}
+                      وبانحراف معياري{' '}
+                      <strong className="font-mono">
+                        σ={primarySource.stats.stdDev.toFixed(2)}
+                      </strong>{' '}
+                      ونسبة تحكم بلغت{' '}
+                      <strong className="font-mono">
+                        {primarySource.stats.passRate.toFixed(1)}%
+                      </strong>{' '}
+                      ({gaussData.diagnosisTitle}). •{' '}
+                      <strong>تشخيص رادار الكفايات:</strong>{' '}
+                      {bestRadar && weakestRadar && (
+                        <>
+                          سُجل أعلى تحكم في «{bestRadar.fullLabel}» بنسبة{' '}
+                          <strong className="font-mono">
+                            {bestRadar.masteryPct.toFixed(0)}%
+                          </strong>
+                          ، بينما تبرز أولوية المعالجة التربوية في «{weakestRadar.competency}» (نسبة التحكم{' '}
+                          <strong className="font-mono">
+                            {weakestRadar.masteryPct.toFixed(0)}%
+                          </strong>
+                          ).
+                        </>
+                      )}{' '}
+                      • <strong>التطور مقارنة بالأرشيف:</strong> سجل المعدل العام فارقاً قدره{' '}
+                      <strong className="font-mono" dir="ltr">
+                        {archiveComparisonData.deltaAverage >= 0 ? '+' : ''}
+                        {archiveComparisonData.deltaAverage.toFixed(2)}
+                      </strong>{' '}
+                      نقطة وفارقاً في نسبة التحكم قدره{' '}
+                      <strong className="font-mono" dir="ltr">
+                        {archiveComparisonData.deltaPassRate >= 0 ? '+' : ''}
+                        {archiveComparisonData.deltaPassRate.toFixed(1)}%
+                      </strong>
+                      .
+                    </p>
+
+                    <div className="mt-2.5 grid grid-cols-3 gap-3 pt-2 border-t border-teal-200/80 text-center text-[10px] font-bold text-slate-700">
+                      <div className="rounded border border-slate-200 bg-white py-2 px-3 flex flex-col items-center justify-between">
+                        <div>توقيع الأستاذ(ة) المنجز(ة)</div>
+                        <div className="mt-1 text-[9px] font-semibold text-slate-700">
+                          {primarySource.metadata.teacherName ||
+                            '................................'}
+                        </div>
+                        {sigMode === 'image' && sigImg ? (
+                          <img
+                            src={sigImg}
+                            alt="توقيع الأستاذ"
+                            className="mt-1 max-h-6 max-w-[110px] object-contain"
+                          />
+                        ) : sigTxt ? (
+                          <div className="mt-1 font-serif text-[10px] font-bold italic text-teal-800">
+                            {sigTxt}
+                          </div>
+                        ) : (
+                          <div className="mt-2 text-[9px] font-normal text-slate-400">
+                            ................................
+                          </div>
+                        )}
+                      </div>
+                      <div className="rounded border border-slate-200 bg-white py-2 px-3 flex flex-col items-center justify-between">
+                        <div>توقيع منسق(ة) المادة / المجلس التعليمي</div>
+                        <div className="mt-4 text-[9px] font-normal text-slate-400">
+                          ................................
+                        </div>
+                      </div>
+                      <div className="rounded border border-slate-200 bg-white py-2 px-3 flex flex-col items-center justify-between">
+                        <div>توقيع وخاتم السيد(ة) مدير(ة) المؤسسة</div>
+                        <div className="mt-4 text-[9px] font-normal text-slate-400">
+                          ................................
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="rounded border border-slate-200 bg-white py-2 px-3">
-                    <div>توقيع منسق(ة) المادة / المجلس التعليمي</div>
-                    <div className="mt-4 text-[9px] font-normal text-slate-400">
-                      ................................
-                    </div>
-                  </div>
-                  <div className="rounded border border-slate-200 bg-white py-2 px-3">
-                    <div>توقيع وخاتم السيد(ة) مدير(ة) المؤسسة</div>
-                    <div className="mt-4 text-[9px] font-normal text-slate-400">
-                      ................................
-                    </div>
-                  </div>
-                </div>
-              </div>
+                );
+              })()}
             </div>
           </div>
         </div>
