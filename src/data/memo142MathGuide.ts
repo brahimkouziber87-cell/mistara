@@ -865,10 +865,25 @@ export function auditMemo142Compliance(
       Number.isFinite(expectedWeightNum) &&
       Math.abs(parsedWeightNum - expectedWeightNum) <= 0.6);
 
-  const examNumMatch = (metadata.examNumber || '').match(/(\d+)/);
-  const parsedExamIndex = examNumMatch ? Number(examNumMatch[1]) : null;
+  const rawExamNumber = (metadata.examNumber || '').trim();
+  const isIntegratedActivities = /الأنشطة\s*المندمجة|الانشطة\s*المندمجة|activit[ée]s?\s*int[ée]gr[ée]es?/i.test(
+    rawExamNumber
+  );
+  const examNumMatch = rawExamNumber.match(/(\d+)/);
+  const parsedExamIndex = examNumMatch
+    ? Number(examNumMatch[1])
+    : /الرابع|رابع/i.test(rawExamNumber)
+    ? 4
+    : /الثالث|الثالت|ثالث/i.test(rawExamNumber)
+    ? 3
+    : /الثاني|ثاني/i.test(rawExamNumber)
+    ? 2
+    : /الأول|الاول|أول|اول/i.test(rawExamNumber)
+    ? 1
+    : null;
   const examNumberMatchesTrack =
-    parsedExamIndex === null || parsedExamIndex <= track.examsPerSemester;
+    !isIntegratedActivities &&
+    (parsedExamIndex === null || parsedExamIndex <= track.examsPerSemester);
 
   const trimmedMinistry = (template.headerConfig.ministryLine || '').trim();
   const officialMinistryOk =
@@ -880,7 +895,7 @@ export function auditMemo142Compliance(
       id: 'admin',
       label: 'عدد ووزن الفرض والترويسة الوزارية',
       status: 'pass',
-      detail: `وزن الفرض (${rawWeight}) ورقمه (${metadata.examNumber || 'فرض 1'}) مطابقان لمسلك ${track.shortCode} (${track.examsPerSemester} فروض/دورة) والترويسة مطابقة للتسمية الرسمية للوزارة.`,
+      detail: `وزن الفرض (${rawWeight}) ورقمه (${rawExamNumber || 'فرض 1'}) مطابقان لمسلك ${track.shortCode} (${track.examsPerSemester} فروض/دورة) والترويسة مطابقة للتسمية الرسمية للوزارة.`,
     });
   } else {
     checks.push({
@@ -889,8 +904,10 @@ export function auditMemo142Compliance(
       status: 'warn',
       detail: !officialMinistryOk
         ? 'الترويسة تحتوي على تسمية قديمة للوزارة — حدّثها إلى «وزارة التربية الوطنية والتعليم الأولي والتكوين المهني والتأهيل».'
+        : isIntegratedActivities
+        ? 'وفق المذكرة 142-08 للرياضيات بالتأهيلي، يُحتسب معدل المراقبة المستمرة حصرياً من الفروض المحروسة (100%) ولا توجد أنشطة مندمجة محتسبة.'
         : !examNumberMatchesTrack
-        ? `رقم الفرض المختار (${metadata.examNumber}) يتجاوز العدد القانوني لمسلك ${track.shortCode} المحدد في المذكرة 142-08 (${track.examsPerSemester} فروض محروسة في الدورة).`
+        ? `رقم الفرض المختار (${rawExamNumber}) يتجاوز العدد القانوني لمسلك ${track.shortCode} المحدد في المذكرة 142-08 (${track.examsPerSemester} فروض محروسة في الدورة).`
         : !hasWeight
         ? `يرجى ضبط وزن الفرض (${track.singleExamWeightLabel} ضمن 100% فروض محروسة وفق المذكرة 142-08).`
         : `وزن الفرض المدخل (${rawWeight}) لا يطابق الوزن القانوني لمسلك ${track.shortCode} (${track.singleExamWeightLabel} لـ ${track.examsPerSemester} فروض/دورة).`,

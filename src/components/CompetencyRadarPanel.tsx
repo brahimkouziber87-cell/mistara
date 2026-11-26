@@ -24,6 +24,7 @@ import {
   COMPETENCY_FRAMEWORK_BANK,
   matchCompetencyBankSelection,
 } from '../data/competencyBank';
+import { detectMathTrackFromMetadata } from '../data/memo142MathGuide';
 import {
   ArchivedClassProject,
   ComputedStats,
@@ -87,6 +88,15 @@ function deriveItemsAndScoresFromTotalScores(
   const bankUnit =
     COMPETENCY_FRAMEWORK_BANK.find((u) => u.id === bankMatch.unitId) ||
     COMPETENCY_FRAMEWORK_BANK[0];
+  const trackSpec = detectMathTrackFromMetadata(metadata);
+  const { directApplicationPct, familiarSituationsPct, complexProblemsPct } =
+    trackSpec.taxonomyBreakdown;
+  const famPart1Pct = Math.ceil(familiarSituationsPct / 2);
+  const famPart2Pct = Math.floor(familiarSituationsPct / 2);
+  const max1 = Math.max(1, Math.round((directApplicationPct / 100) * 20 * 2) / 2);
+  const max2 = Math.max(1, Math.round((famPart1Pct / 100) * 20 * 2) / 2);
+  const max3 = Math.max(1, Math.round((famPart2Pct / 100) * 20 * 2) / 2);
+  const max4 = Math.max(1, Math.round((20 - max1 - max2 - max3) * 2) / 2);
 
   const items: ExamItemDefinition[] =
     existingItems.length > 0
@@ -94,43 +104,43 @@ function deriveItemsAndScoresFromTotalScores(
       : [
           {
             id: 'auto-item-1',
-            label: 'التمرين 1 (استرداد وتطبيق مباشر - 30%)',
+            label: `التمرين 1 (تطبيق مباشر - ${directApplicationPct}%)`,
             competency:
               bankUnit.competencies[0] ||
               'استرداد التعاريف وتطبيق القواعد والخاصيات الأساسية مباشرة',
-            maxScore: 6,
+            maxScore: max1,
             remediationTask:
               bankUnit.remediationBullets[0] ||
               'بطاقة تذكير بالقواعد الأساس وتمارين تطبيقية مباشرة (المستوى الأول)',
           },
           {
             id: 'auto-item-2',
-            label: 'التمرين 2 (توظيف المفاهيم والاستدلال - 25%)',
+            label: `التمرين 2 (استدلال وتوظيف - ${famPart1Pct}%)`,
             competency:
               bankUnit.competencies[1] ||
               'توظيف المفاهيم الرياضية في وضعيات مألوفة وتبرير مراحل الحل',
-            maxScore: 5,
+            maxScore: max2,
             remediationTask:
               bankUnit.remediationBullets[1] ||
               'تمارين موجهة حول صياغة البرهان الرياضي وتسلسل الاستنتاجات',
           },
           {
             id: 'auto-item-3',
-            label: 'التمرين 3 (ترييض ومعالجة جبرية/بيانية - 25%)',
+            label: `التمرين 3 (ترييض ومعالجة - ${famPart2Pct}%)`,
             competency:
               bankUnit.competencies[2] ||
               'الربط بين التمثيل الجبري والهندسي/البياني ومعالجة المعادلات',
-            maxScore: 5,
+            maxScore: max3,
             remediationTask:
               bankUnit.remediationBullets[2] ||
               'تدريب مرحلي على استخراج المعطيات وتأويل النتائج بيانياً وجبرياً',
           },
           {
             id: 'auto-item-4',
-            label: 'التمرين 4 (وضعية توليفية ومركبة - 20%)',
+            label: `التمرين 4 (وضعية مركبة - ${complexProblemsPct}%)`,
             competency:
-              'حل وضعية مسألة مركبة وتوليف المكتسبات القبلية والمنهجية (المذكرة 142-08)',
-            maxScore: 4,
+              'حل وضعية مسألة مركبة وتوليف المكتسبات القبلية (المذكرة 142-08)',
+            maxScore: max4,
             remediationTask:
               bankUnit.recommendedExerciseTask ||
               'تفكيك المسائل المركبة إلى أسئلة فرعية متدرجة داخل مجموعات الحاجة',
