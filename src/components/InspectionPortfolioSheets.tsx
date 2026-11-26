@@ -25,6 +25,18 @@ export interface InspectionTocEntry {
   pageCount: number;
 }
 
+function resolvePortfolioTableStyles(styleConfig: ReportTemplateSchema['styleConfig']) {
+  const accent = styleConfig.accentColor || '#1e3a8a';
+  const headerStyle: React.CSSProperties =
+    styleConfig.tableHeaderBg === 'solid-accent'
+      ? { backgroundColor: accent, color: '#ffffff' }
+      : styleConfig.tableHeaderBg === 'tinted'
+      ? { backgroundColor: `${accent}16`, color: accent }
+      : { backgroundColor: '#f1f5f9', color: '#0f172a' };
+  const rowTint = styleConfig.tableStripeTint !== false ? `${accent}08` : '#f8fafc';
+  return { headerStyle, rowTint };
+}
+
 interface InspectionCoverSheetProps {
   template: ReportTemplateSchema;
   metadata: MassarMetadata;
@@ -45,6 +57,9 @@ export const InspectionCoverSheet: React.FC<InspectionCoverSheetProps> = ({
   const accent = template.styleConfig.accentColor || '#1e3a8a';
   const secondary = template.styleConfig.secondaryAccent || '#0f766e';
   const fontClass = getReportFontClass(template.styleConfig.fontFamily);
+  const { headerStyle: tocHeaderStyle, rowTint: tocRowTint } = resolvePortfolioTableStyles(
+    template.styleConfig
+  );
 
   return (
     <ReportSheetFrame
@@ -128,7 +143,7 @@ export const InspectionCoverSheet: React.FC<InspectionCoverSheetProps> = ({
           </h2>
           <table className="w-full border-collapse text-xs">
             <thead>
-              <tr className="bg-slate-100 font-bold text-slate-800">
+              <tr className="font-bold" style={tocHeaderStyle}>
                 <th className="w-10 border border-slate-300 px-2 py-1.5 text-center">#</th>
                 <th className="border border-slate-300 px-2.5 py-1.5 text-start">
                   {lang === 'fr' ? 'Pièce constitutive du dossier' : lang === 'en' ? 'Portfolio Document' : 'الوثيقة التربوية المدرجة'}
@@ -142,14 +157,17 @@ export const InspectionCoverSheet: React.FC<InspectionCoverSheetProps> = ({
               </tr>
             </thead>
             <tbody>
-              {tocEntries.map((entry) => {
+              {tocEntries.map((entry, idx) => {
                 const endPage = entry.startPage + entry.pageCount - 1;
                 const pageRange =
                   entry.pageCount > 1
                     ? `${entry.startPage} – ${endPage}`
                     : `${entry.startPage}`;
                 return (
-                  <tr key={entry.index} className="even:bg-slate-50/60">
+                  <tr
+                    key={entry.index}
+                    style={idx % 2 === 1 ? { backgroundColor: tocRowTint } : undefined}
+                  >
                     <td className="border border-slate-300 px-2 py-1.5 text-center font-mono font-bold text-slate-700">
                       0{entry.index}
                     </td>
@@ -330,6 +348,9 @@ export const ItemMatrixReportSheet: React.FC<ItemMatrixReportSheetProps> = ({
   const labels = getReportLabels(lang);
   const accent = template.styleConfig.accentColor || '#1e3a8a';
   const fontClass = getReportFontClass(template.styleConfig.fontFamily);
+  const { headerStyle: itemHeaderStyle, rowTint: itemRowTint } = resolvePortfolioTableStyles(
+    template.styleConfig
+  );
   const itemStats = computeItemMatrixStats(students, itemDefinitions, studentItemScores, 50);
 
   return (
@@ -360,10 +381,7 @@ export const ItemMatrixReportSheet: React.FC<ItemMatrixReportSheetProps> = ({
 
         <table className="w-full border-collapse text-xs">
           <thead>
-            <tr
-              className="font-bold text-white"
-              style={{ backgroundColor: accent }}
-            >
+            <tr className="font-bold" style={itemHeaderStyle}>
               <th className="border border-slate-300 px-2.5 py-2 text-start">
                 {labels.itemColExercise}
               </th>
@@ -385,7 +403,7 @@ export const ItemMatrixReportSheet: React.FC<ItemMatrixReportSheetProps> = ({
             </tr>
           </thead>
           <tbody>
-            {itemStats.map((st) => {
+            {itemStats.map((st, idx) => {
               const statusText =
                 st.status === 'mastered'
                   ? labels.itemStatusMastered
@@ -399,7 +417,10 @@ export const ItemMatrixReportSheet: React.FC<ItemMatrixReportSheetProps> = ({
                   ? '#b45309'
                   : '#b91c1c';
               return (
-                <tr key={st.item.id} className="even:bg-slate-50/70">
+                <tr
+                  key={st.item.id}
+                  style={idx % 2 === 1 ? { backgroundColor: itemRowTint } : undefined}
+                >
                   <td className="border border-slate-300 px-2.5 py-2 font-bold text-slate-900">
                     {st.item.label}
                   </td>
@@ -471,6 +492,9 @@ export const LongitudinalSummaryReportSheet: React.FC<LongitudinalSummaryReportS
   const labels = getReportLabels(lang);
   const accent = template.styleConfig.accentColor || '#1e3a8a';
   const fontClass = getReportFontClass(template.styleConfig.fontFamily);
+  const { headerStyle: longHeaderStyle, rowTint: longRowTint } = resolvePortfolioTableStyles(
+    template.styleConfig
+  );
   const result = computeLongitudinalComparison(
     cohortProjects,
     template.passThreshold
@@ -506,7 +530,7 @@ export const LongitudinalSummaryReportSheet: React.FC<LongitudinalSummaryReportS
         {/* Exam progression summary table */}
         <table className="w-full border-collapse text-center text-xs">
           <thead>
-            <tr className="font-bold text-white" style={{ backgroundColor: accent }}>
+            <tr className="font-bold" style={longHeaderStyle}>
               <th className="border border-slate-300 px-2 py-1.5 text-start">
                 {lang === 'fr' ? 'Devoir' : lang === 'en' ? 'Assessment' : 'الفرض المحروس'}
               </th>
@@ -518,8 +542,11 @@ export const LongitudinalSummaryReportSheet: React.FC<LongitudinalSummaryReportS
             </tr>
           </thead>
           <tbody className="font-mono tabular-nums">
-            {result.exams.map((ex) => (
-              <tr key={ex.projectId} className="even:bg-slate-50/70">
+            {result.exams.map((ex, idx) => (
+              <tr
+                key={ex.projectId}
+                style={idx % 2 === 1 ? { backgroundColor: longRowTint } : undefined}
+              >
                 <td className="border border-slate-300 px-2 py-1.5 text-start font-sans font-bold">
                   {ex.examNumber}
                 </td>
@@ -588,7 +615,7 @@ export const LongitudinalSummaryReportSheet: React.FC<LongitudinalSummaryReportS
                   className={`w-full border-collapse ${useTwoCols ? 'text-[8.5px]' : 'text-[10px]'}`}
                 >
                   <thead>
-                    <tr className="bg-slate-100 font-bold text-slate-800">
+                    <tr className="font-bold" style={longHeaderStyle}>
                       <th className="border border-slate-300 px-1.5 py-1 text-start">
                         {labels.colStudentName}
                       </th>
@@ -606,8 +633,11 @@ export const LongitudinalSummaryReportSheet: React.FC<LongitudinalSummaryReportS
                     </tr>
                   </thead>
                   <tbody>
-                    {chunk.map((tr) => (
-                      <tr key={tr.key} className="even:bg-slate-50/60">
+                    {chunk.map((tr, rIdx) => (
+                      <tr
+                        key={tr.key}
+                        style={rIdx % 2 === 1 ? { backgroundColor: longRowTint } : undefined}
+                      >
                         <td className="border border-slate-300 px-1.5 py-0.5 font-semibold text-slate-900 truncate max-w-[115px]">
                           {tr.fullName}
                         </td>
@@ -677,6 +707,9 @@ export const PostRemediationImpactReportSheet: React.FC<
   const labels = getReportLabels(lang);
   const accent = template.styleConfig.accentColor || '#1e3a8a';
   const fontClass = getReportFontClass(template.styleConfig.fontFamily);
+  const { headerStyle: impactHeaderStyle, rowTint: impactRowTint } = resolvePortfolioTableStyles(
+    template.styleConfig
+  );
 
   const visibleRows = impact.studentRows.slice(0, 52);
   const hiddenRowsCount = Math.max(0, impact.studentRows.length - visibleRows.length);
@@ -781,7 +814,7 @@ export const PostRemediationImpactReportSheet: React.FC<
               className={`w-full border-collapse ${useTwoCols ? 'text-[8.5px]' : 'text-[10.5px]'}`}
             >
               <thead>
-                <tr className="font-bold text-white" style={{ backgroundColor: accent }}>
+                <tr className="font-bold" style={impactHeaderStyle}>
                   <th className="border border-slate-300 px-2 py-1.5 text-start">
                     {labels.colStudentName}
                   </th>
@@ -800,8 +833,11 @@ export const PostRemediationImpactReportSheet: React.FC<
                 </tr>
               </thead>
               <tbody>
-                {chunk.map((row) => (
-                  <tr key={row.student.id} className="even:bg-slate-50/60">
+                {chunk.map((row, rIdx) => (
+                  <tr
+                    key={row.student.id}
+                    style={rIdx % 2 === 1 ? { backgroundColor: impactRowTint } : undefined}
+                  >
                     <td className="border border-slate-300 px-2 py-1 font-semibold text-slate-900 truncate max-w-[125px]">
                       {row.student.fullName}
                     </td>

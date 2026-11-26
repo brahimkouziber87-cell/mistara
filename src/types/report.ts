@@ -193,9 +193,15 @@ export type ReportFrameStyle =
   | 'top-bottom-bands'
   | 'none';
 
+export type ChartColorMode = 'theme-harmonized' | 'semantic';
+
 export interface TemplateStyleConfig {
+  themeId?: string;
   accentColor: string;
   secondaryAccent?: string;
+  chartPalette?: string[];
+  chartColorMode?: ChartColorMode;
+  tableStripeTint?: boolean;
   borderStyle: 'official-double' | 'classic-grid' | 'modern-minimal' | 'section-banners';
   frameStyle?: ReportFrameStyle;
   fontFamily: ReportFontFamily;
@@ -211,7 +217,7 @@ export type RemediationCardTargetFilter =
   | 'all'
   | 'custom';
 
-export type RemediationCardsPerSheet = 4 | 2;
+export type RemediationCardsPerSheet = 4 | 3 | 2;
 
 export type PostSupportStatus = 'pending' | 'mastered' | 'in_progress' | 'needs_followup';
 

@@ -563,7 +563,8 @@ export const IndividualRemediationCardsSheet: React.FC<
     ]
   );
 
-  const cardsPerPage = config.cardsPerSheet === 2 ? 2 : 4;
+  const cardsPerPage =
+    config.cardsPerSheet === 2 ? 2 : config.cardsPerSheet === 3 ? 3 : 4;
   const pages = chunkArray(cardsData, cardsPerPage);
   const computedTotalPages = totalDocumentPages ?? pages.length;
 
@@ -639,6 +640,8 @@ export const IndividualRemediationCardsSheet: React.FC<
       {pages.map((pageCards, pageIdx) => {
         const currentPageNumber = startPageNumber + pageIdx;
         const isTwoPerSheet = cardsPerPage === 2;
+        const isThreePerSheet = cardsPerPage === 3;
+        const isFullWidthCard = isTwoPerSheet || isThreePerSheet;
 
         return (
           <ReportSheetFrame
@@ -683,11 +686,13 @@ export const IndividualRemediationCardsSheet: React.FC<
               className={`relative my-[2mm] flex-1 min-h-0 grid ${
                 isTwoPerSheet
                   ? 'grid-cols-1 grid-rows-2 gap-[4mm]'
+                  : isThreePerSheet
+                  ? 'grid-cols-1 grid-rows-3 gap-[3.6mm]'
                   : 'grid-cols-2 grid-rows-2 gap-[3.5mm]'
               }`}
             >
-              {/* Dashed Cut Guides */}
-              {config.showCutGuides && !isTwoPerSheet && (
+              {/* Dashed Cut Guides (4 per sheet: 2x2 cross) */}
+              {config.showCutGuides && !isFullWidthCard && (
                 <>
                   <div
                     aria-hidden="true"
@@ -706,6 +711,7 @@ export const IndividualRemediationCardsSheet: React.FC<
                 </>
               )}
 
+              {/* Dashed Cut Guide (2 per sheet: horizontal middle line) */}
               {config.showCutGuides && isTwoPerSheet && (
                 <div
                   aria-hidden="true"
@@ -716,6 +722,32 @@ export const IndividualRemediationCardsSheet: React.FC<
                     {labels.cardCutGuide}
                   </span>
                 </div>
+              )}
+
+              {/* Dashed Cut Guides (3 per sheet: exact midpoints of the two 3.6mm gaps) */}
+              {config.showCutGuides && isThreePerSheet && (
+                <>
+                  <div
+                    aria-hidden="true"
+                    style={{ top: 'calc(33.3333% - 0.6mm)' }}
+                    className="pointer-events-none absolute inset-x-0 -translate-y-1/2 flex items-center justify-center border-t border-dashed border-slate-300"
+                  >
+                    <span className="bg-white px-2 py-0 text-[7px] leading-none font-semibold text-slate-400 inline-flex items-center gap-1">
+                      <Scissors className="h-2.5 w-2.5" />
+                      {labels.cardCutGuide}
+                    </span>
+                  </div>
+                  <div
+                    aria-hidden="true"
+                    style={{ top: 'calc(66.6667% + 0.6mm)' }}
+                    className="pointer-events-none absolute inset-x-0 -translate-y-1/2 flex items-center justify-center border-t border-dashed border-slate-300"
+                  >
+                    <span className="bg-white px-2 py-0 text-[7px] leading-none font-semibold text-slate-400 inline-flex items-center gap-1">
+                      <Scissors className="h-2.5 w-2.5" />
+                      {labels.cardCutGuide}
+                    </span>
+                  </div>
+                </>
               )}
 
               {pageCards.map((card, cardIdx) => {
@@ -731,7 +763,11 @@ export const IndividualRemediationCardsSheet: React.FC<
                   <div
                     key={card.student.id}
                     className={`flex h-full flex-col justify-between overflow-hidden rounded-lg border bg-white ${
-                      isTwoPerSheet ? 'p-3 text-[10px]' : 'p-2.5 text-[9px]'
+                      isTwoPerSheet
+                        ? 'p-3 text-[10px]'
+                        : isThreePerSheet
+                        ? 'p-2 text-[8.5px]'
+                        : 'p-2.5 text-[9px]'
                     }`}
                     style={{
                       borderColor: colors.border,
@@ -739,7 +775,7 @@ export const IndividualRemediationCardsSheet: React.FC<
                     }}
                   >
                     {/* Top Section: Card Header + Student Identity + Score Box */}
-                    <div className="space-y-1.5">
+                    <div className={isThreePerSheet ? 'space-y-1' : 'space-y-1.5'}>
                       <div
                         className="flex items-center justify-between gap-1 rounded px-2 py-1"
                         style={{
@@ -791,7 +827,11 @@ export const IndividualRemediationCardsSheet: React.FC<
                           </div>
                           <div
                             className={`truncate font-extrabold text-slate-900 ${
-                              isTwoPerSheet ? 'text-xs' : 'text-[10.5px]'
+                              isTwoPerSheet
+                                ? 'text-xs'
+                                : isThreePerSheet
+                                ? 'text-[11px]'
+                                : 'text-[10.5px]'
                             }`}
                           >
                             {card.student.fullName}
@@ -869,49 +909,60 @@ export const IndividualRemediationCardsSheet: React.FC<
                         </div>
                       </div>
 
-                      {/* Diagnostic & Competency Focus Box */}
-                      <div className="rounded border border-slate-200 bg-white px-2 py-1">
-                        <div className="flex items-baseline justify-between gap-1">
-                          <span className="font-extrabold" style={{ color: accent }}>
-                            {labels.cardDiagTitle}
-                          </span>
-                          <span className="truncate text-[7.5px] font-semibold text-slate-500">
-                            {labels.teacherLabel}: {metadata.teacherName || '—'}
-                          </span>
-                        </div>
-                        <p className="mt-0.5 leading-snug text-slate-800 line-clamp-2">
-                          {card.diagnosticText}
-                        </p>
-                        <div className="mt-0.5 truncate text-[8px] font-semibold text-slate-700">
-                          <span style={{ color: secondaryAccent }}>{labels.cardTargetCompetency} </span>
-                          {card.competencyFocus}
-                        </div>
-                        {card.weakItemsText && (
-                          <div className="mt-0.5 truncate font-mono text-[7.5px] font-bold text-red-700">
-                            {labels.cardWeakItemsLabel} {card.weakItemsText}
+                      {/* Diagnostic & Remediation Plan (Side-by-side when 3 cards/page for optimal vertical height) */}
+                      <div
+                        className={
+                          isThreePerSheet
+                            ? 'grid grid-cols-2 gap-1.5'
+                            : 'space-y-1.5'
+                        }
+                      >
+                        {/* Diagnostic & Competency Focus Box */}
+                        <div className="rounded border border-slate-200 bg-white px-2 py-1">
+                          <div className="flex items-baseline justify-between gap-1">
+                            <span className="font-extrabold" style={{ color: accent }}>
+                              {labels.cardDiagTitle}
+                            </span>
+                            <span className="truncate text-[7.5px] font-semibold text-slate-500">
+                              {labels.teacherLabel}: {metadata.teacherName || '—'}
+                            </span>
                           </div>
-                        )}
-                      </div>
-
-                      {/* Remediation Action Plan */}
-                      <div className="rounded border border-teal-200/80 bg-teal-50/30 px-2 py-1">
-                        <div className="font-extrabold text-teal-950">
-                          {labels.cardActionPlanTitle}
-                        </div>
-                        <p className="mt-0.5 font-semibold leading-snug text-slate-900 line-clamp-2">
-                          {labels.cardActivityPrefix} {card.exerciseTask}
-                        </p>
-                        <div
-                          className={`mt-1 grid ${
-                            isTwoPerSheet ? 'grid-cols-3 gap-1.5' : 'grid-cols-1 gap-0.5'
-                          } text-[8px] text-slate-700`}
-                        >
-                          {card.checklistItems.map((item, idx) => (
-                            <div key={idx} className="flex items-center gap-1 truncate">
-                              <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-xs border border-slate-400 bg-white" />
-                              <span className="truncate">{item}</span>
+                          <p className="mt-0.5 leading-snug text-slate-800 line-clamp-2">
+                            {card.diagnosticText}
+                          </p>
+                          <div className="mt-0.5 truncate text-[8px] font-semibold text-slate-700">
+                            <span style={{ color: secondaryAccent }}>{labels.cardTargetCompetency} </span>
+                            {card.competencyFocus}
+                          </div>
+                          {card.weakItemsText && (
+                            <div className="mt-0.5 truncate font-mono text-[7.5px] font-bold text-red-700">
+                              {labels.cardWeakItemsLabel} {card.weakItemsText}
                             </div>
-                          ))}
+                          )}
+                        </div>
+
+                        {/* Remediation Action Plan */}
+                        <div className="rounded border border-teal-200/80 bg-teal-50/30 px-2 py-1">
+                          <div className="font-extrabold text-teal-950">
+                            {labels.cardActionPlanTitle}
+                          </div>
+                          <p className="mt-0.5 font-semibold leading-snug text-slate-900 line-clamp-2">
+                            {labels.cardActivityPrefix} {card.exerciseTask}
+                          </p>
+                          <div
+                            className={`mt-1 grid ${
+                              isTwoPerSheet
+                                ? 'grid-cols-3 gap-1.5'
+                                : 'grid-cols-1 gap-0.5'
+                            } text-[8px] text-slate-700`}
+                          >
+                            {card.checklistItems.map((item, idx) => (
+                              <div key={idx} className="flex items-center gap-1 truncate">
+                                <span className="inline-block h-2.5 w-2.5 shrink-0 rounded-xs border border-slate-400 bg-white" />
+                                <span className="truncate">{item}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>

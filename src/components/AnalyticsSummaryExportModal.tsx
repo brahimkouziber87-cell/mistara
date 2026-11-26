@@ -19,6 +19,7 @@ import {
 import { detectMathTrackFromMetadata } from '../data/memo142MathGuide';
 import {
   DEFAULT_METADATA,
+  resolveScoreBinColor,
   SAMPLE_CLASS_METADATA,
   SAMPLE_CLASS_STUDENTS,
   TEMPLATE_PRESETS,
@@ -343,16 +344,11 @@ export const AnalyticsSummaryExportModal: React.FC<
         idx === 9 ? sc >= min && sc <= max : sc >= min && sc < max
       ).length;
       const pct = (count / n) * 100;
-      const color =
-        max <= 8
-          ? '#dc2626'
-          : max <= 10
-          ? '#ea580c'
-          : max <= 14
-          ? '#2563eb'
-          : max <= 16
-          ? '#0d9488'
-          : '#16a34a';
+      const color = resolveScoreBinColor(
+        mid,
+        primarySource.template.styleConfig,
+        primarySource.template.brackets
+      );
       return { idx, min, max, mid, count, pct, color, label: `${min}-${max}` };
     });
 
@@ -454,7 +450,13 @@ export const AnalyticsSummaryExportModal: React.FC<
       };
     };
 
-    const otherSources = sources.filter((s) => s.id !== primarySource.id).slice(0, 3);
+    const normClass = (s?: string) => (s || '').replace(/\s+/g, '').trim().toLowerCase();
+    const curClassKey = normClass(primarySource.metadata.className);
+    const candidates = sources.filter((s) => s.id !== primarySource.id);
+    const sameClassSources = curClassKey
+      ? candidates.filter((s) => normClass(s.metadata.className) === curClassKey)
+      : [];
+    const otherSources = (sameClassSources.length > 0 ? sameClassSources : candidates).slice(0, 3);
     const items: SummaryArchiveBarItem[] = [];
 
     if (otherSources.length > 0) {
@@ -606,13 +608,24 @@ export const AnalyticsSummaryExportModal: React.FC<
 
   if (!isOpen || typeof document === 'undefined') return null;
 
+  const themeAccent = primarySource.template.styleConfig?.accentColor || '#0f766e';
+  const themeSecondary = primarySource.template.styleConfig?.secondaryAccent || '#1e3a8a';
+  const themeHeaderMode = primarySource.template.styleConfig?.tableHeaderBg || 'tinted';
+  const themeStripeTint = primarySource.template.styleConfig?.tableStripeTint !== false;
+  const summaryTableHeaderStyle: React.CSSProperties =
+    themeHeaderMode === 'solid-accent'
+      ? { backgroundColor: themeAccent, color: '#ffffff' }
+      : themeHeaderMode === 'tinted'
+      ? { backgroundColor: `${themeAccent}16`, color: themeAccent }
+      : { backgroundColor: '#f8fafc', color: '#334155' };
+
   // --- SVG GEOMETRY FOR CHART 1: GAUSSIAN CURVE ---
   const gaussSvgW = 540;
-  const gaussSvgH = 215;
+  const gaussSvgH = 195;
   const gPadL = 32;
   const gPadR = 16;
-  const gPadT = 22;
-  const gPadB = 34;
+  const gPadT = 20;
+  const gPadB = 30;
   const gPlotW = gaussSvgW - gPadL - gPadR;
   const gPlotH = gaussSvgH - gPadT - gPadB;
   const gX = (score: number) => gPadL + (Math.min(20, Math.max(0, score)) / 20) * gPlotW;
@@ -652,10 +665,10 @@ export const AnalyticsSummaryExportModal: React.FC<
 
   // --- SVG GEOMETRY FOR CHART 2: COMPETENCY RADAR CHART ---
   const radarSvgW = 300;
-  const radarSvgH = 225;
+  const radarSvgH = 202;
   const rCx = 150;
-  const rCy = 114;
-  const rMaxRadius = 74;
+  const rCy = 102;
+  const rMaxRadius = 68;
   const radarCount = Math.max(3, radarItems.length);
   const angleForIdx = (idx: number) => -Math.PI / 2 + (idx * 2 * Math.PI) / radarCount;
   const polarPoint = (idx: number, pct: number) => {
@@ -688,11 +701,11 @@ export const AnalyticsSummaryExportModal: React.FC<
 
   // --- SVG GEOMETRY FOR CHART 3: ARCHIVE COMPARISON BAR CHART ---
   const archSvgW = 460;
-  const archSvgH = 195;
+  const archSvgH = 180;
   const aPadL = 34;
   const aPadR = 28;
-  const aPadT = 22;
-  const aPadB = 36;
+  const aPadT = 20;
+  const aPadB = 34;
   const aPlotW = archSvgW - aPadL - aPadR;
   const aPlotH = archSvgH - aPadT - aPadB;
   const aYAvg = (avg: number) => aPadT + aPlotH - (Math.min(20, Math.max(0, avg)) / 20) * aPlotH;
@@ -813,17 +826,16 @@ export const AnalyticsSummaryExportModal: React.FC<
             ref={sheetContainerRef}
             className="mx-auto flex justify-center"
           >
-            {/* Unified A4 Report Sheet (794px width x auto/1122px height) */}
+            {/* Unified A4 Report Sheet (210mm x 296mm exact A4 geometry) */}
             <div
               dir="rtl"
-              className="report-sheet w-[794px] shrink-0 rounded-none border border-slate-300 bg-white p-6 text-slate-900 shadow-lg"
+              className="report-sheet flex w-[794px] shrink-0 flex-col justify-between overflow-hidden rounded-none border border-slate-300 bg-white p-5 text-slate-900 shadow-lg"
               style={{
                 fontFamily: "'Cairo', 'Tajawal', sans-serif",
-                minHeight: '1115px',
               }}
             >
               {/* 1. OFFICIAL MINISTRY & COUNCIL HEADER */}
-              <div className="border-b-2 border-teal-800 pb-3">
+              <div className="border-b-2 pb-3" style={{ borderColor: themeAccent }}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-0.5 text-right text-[10px] font-bold leading-snug text-slate-700">
                     <div>المملكة المغربية</div>
@@ -840,11 +852,17 @@ export const AnalyticsSummaryExportModal: React.FC<
                   </div>
 
                   <div className="text-center">
-                    <div className="inline-flex items-center gap-1.5 rounded-md border border-teal-800 bg-teal-900 px-3 py-1 text-[12px] font-extrabold text-white">
+                    <div
+                      className="inline-flex items-center gap-1.5 rounded-md border px-3 py-1 text-[12px] font-extrabold text-white"
+                      style={{
+                        borderColor: themeAccent,
+                        background: `linear-gradient(to left, ${themeAccent} 0%, ${themeSecondary} 100%)`,
+                      }}
+                    >
                       <Sparkles className="h-3.5 w-3.5 text-amber-300" />
                       <span>ملخص التحليلات الإحصائية والبيانية للمجلس التعليمي</span>
                     </div>
-                    <div className="mt-1 text-[10px] font-bold text-teal-800">
+                    <div className="mt-1 text-[10px] font-bold" style={{ color: themeAccent }}>
                       توزيع منحنى غوص · رادار الكفايات والفقرات · مقارنات الأرشيف (المذكرة 142-08)
                     </div>
                   </div>
@@ -872,7 +890,13 @@ export const AnalyticsSummaryExportModal: React.FC<
                 </div>
 
                 {/* Metadata strip */}
-                <div className="mt-2.5 grid grid-cols-5 gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-[10px]">
+                <div
+                  className="mt-2.5 grid grid-cols-5 gap-2 rounded-lg border px-3 py-1.5 text-[10px]"
+                  style={{
+                    borderColor: `${themeAccent}30`,
+                    backgroundColor: `${themeAccent}07`,
+                  }}
+                >
                   <div>
                     <span className="text-slate-500">القسم والمستوى: </span>
                     <span className="font-extrabold text-slate-900">
@@ -887,7 +911,7 @@ export const AnalyticsSummaryExportModal: React.FC<
                   </div>
                   <div>
                     <span className="text-slate-500">المحطة التقويمية: </span>
-                    <span className="font-bold text-teal-800">
+                    <span className="font-bold" style={{ color: themeAccent }}>
                       {primarySource.metadata.examNumber || 'الفرض المحروس'} (
                       {primarySource.metadata.semester || 'الدورة الأولى'})
                     </span>
@@ -909,15 +933,31 @@ export const AnalyticsSummaryExportModal: React.FC<
 
               {/* 2. SIX EXECUTIVE KPI CARDS */}
               <div className="mt-3 grid grid-cols-6 gap-2">
-                <div className="rounded-lg border border-teal-200 bg-teal-50/70 px-2.5 py-1.5 text-center">
-                  <div className="text-[9.5px] font-bold text-teal-800">المعدل العام (μ)</div>
-                  <div className="mt-0.5 font-mono text-sm font-extrabold text-teal-950">
+                <div
+                  className="rounded-lg border px-2.5 py-1.5 text-center"
+                  style={{
+                    borderColor: `${themeAccent}40`,
+                    backgroundColor: `${themeAccent}10`,
+                  }}
+                >
+                  <div className="text-[9.5px] font-bold" style={{ color: themeAccent }}>
+                    المعدل العام (μ)
+                  </div>
+                  <div className="mt-0.5 font-mono text-sm font-extrabold text-slate-950">
                     {primarySource.stats.average.toFixed(2)}/20
                   </div>
                 </div>
-                <div className="rounded-lg border border-indigo-200 bg-indigo-50/70 px-2.5 py-1.5 text-center">
-                  <div className="text-[9.5px] font-bold text-indigo-800">الوسيط (Md)</div>
-                  <div className="mt-0.5 font-mono text-sm font-extrabold text-indigo-950">
+                <div
+                  className="rounded-lg border px-2.5 py-1.5 text-center"
+                  style={{
+                    borderColor: `${themeSecondary}40`,
+                    backgroundColor: `${themeSecondary}10`,
+                  }}
+                >
+                  <div className="text-[9.5px] font-bold" style={{ color: themeSecondary }}>
+                    الوسيط (Md)
+                  </div>
+                  <div className="mt-0.5 font-mono text-sm font-extrabold text-slate-950">
                     {primarySource.stats.median.toFixed(2)}/20
                   </div>
                 </div>
@@ -943,8 +983,16 @@ export const AnalyticsSummaryExportModal: React.FC<
                     {primarySource.stats.topStudents.length} تلميذ
                   </div>
                 </div>
-                <div className="rounded-lg border border-blue-200 bg-blue-50/70 px-2.5 py-1.5 text-center">
-                  <div className="text-[9.5px] font-bold text-blue-800">التطور مع الأرشيف (Δ)</div>
+                <div
+                  className="rounded-lg border px-2.5 py-1.5 text-center"
+                  style={{
+                    borderColor: `${themeSecondary}35`,
+                    backgroundColor: `${themeSecondary}08`,
+                  }}
+                >
+                  <div className="text-[9.5px] font-bold" style={{ color: themeSecondary }}>
+                    التطور مع الأرشيف (Δ)
+                  </div>
                   <div
                     className={`mt-0.5 font-mono text-sm font-extrabold ${
                       archiveComparisonData.deltaAverage >= 0
@@ -960,15 +1008,25 @@ export const AnalyticsSummaryExportModal: React.FC<
               </div>
 
               {/* 3. CHART 1: GAUSSIAN NORMAL DISTRIBUTION CURVE (COURBE DE GAUSS 142-08) */}
-              <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+              <div
+                className="mt-3 rounded-xl border bg-white p-3"
+                style={{ borderColor: `${themeAccent}30` }}
+              >
                 <div className="mb-2 flex items-center justify-between border-b border-slate-100 pb-1.5">
                   <div className="flex items-center gap-1.5">
-                    <Activity className="h-4 w-4 text-teal-700" />
+                    <Activity className="h-4 w-4" style={{ color: themeAccent }} />
                     <h3 className="text-xs font-extrabold text-slate-900">
                       أولاً: توزيع معدلات القسم وفق منحنى غوص الطبيعي (Courbe de Gauss — المذكرة 142-08)
                     </h3>
                   </div>
-                  <span className="rounded bg-teal-50 px-2 py-0.5 text-[10px] font-bold text-teal-900 border border-teal-200">
+                  <span
+                    className="rounded px-2 py-0.5 text-[10px] font-bold border"
+                    style={{
+                      backgroundColor: `${themeAccent}10`,
+                      color: themeAccent,
+                      borderColor: `${themeAccent}35`,
+                    }}
+                  >
                     {gaussData.diagnosisTitle}
                   </span>
                 </div>
@@ -1066,11 +1124,11 @@ export const AnalyticsSummaryExportModal: React.FC<
                       />
 
                       {/* Empirical Gauss Bell Curve N(mu, sigma^2) */}
-                      <path d={empArea} fill="#0f766e" fillOpacity={0.14} />
+                      <path d={empArea} fill={themeAccent} fillOpacity={0.14} />
                       <path
                         d={empPath}
                         fill="none"
-                        stroke="#0f766e"
+                        stroke={themeAccent}
                         strokeWidth={2.4}
                         strokeLinecap="round"
                       />
@@ -1101,7 +1159,7 @@ export const AnalyticsSummaryExportModal: React.FC<
                         y1={gPadT}
                         x2={gX(gaussData.mean)}
                         y2={gPadT + gPlotH}
-                        stroke="#0f766e"
+                        stroke={themeSecondary}
                         strokeWidth={1.8}
                       />
                       <text
@@ -1110,7 +1168,7 @@ export const AnalyticsSummaryExportModal: React.FC<
                         textAnchor="end"
                         fontSize="8.5"
                         fontWeight="800"
-                        fill="#0f766e"
+                        fill={themeSecondary}
                         fontFamily="monospace"
                       >
                         μ={gaussData.mean.toFixed(2)}
@@ -1125,7 +1183,7 @@ export const AnalyticsSummaryExportModal: React.FC<
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-slate-600">النطاق المركزي [μ±σ]:</span>
-                      <span className="font-mono font-bold text-teal-900">
+                      <span className="font-mono font-bold" style={{ color: themeAccent }}>
                         {gaussData.within1SigmaPct.toFixed(1)}% (المرجع ~68%)
                       </span>
                     </div>
@@ -1145,7 +1203,10 @@ export const AnalyticsSummaryExportModal: React.FC<
                     </div>
                     <div className="pt-1 border-t border-slate-200 space-y-1 text-[9.5px]">
                       <div className="flex items-center gap-1.5">
-                        <span className="inline-block h-2 w-4 rounded-xs bg-teal-700" />
+                        <span
+                          className="inline-block h-2 w-4 rounded-xs"
+                          style={{ backgroundColor: themeAccent }}
+                        />
                         <span className="font-semibold text-slate-700">
                           منحنى غوص الفعلي للقسم N(μ, σ²)
                         </span>
@@ -1170,11 +1231,14 @@ export const AnalyticsSummaryExportModal: React.FC<
               {/* 4. MIDDLE ROW: CHART 2 (COMPETENCY RADAR) + CHART 3 (ARCHIVE COMPARISON) */}
               <div className="mt-3 grid grid-cols-12 gap-3">
                 {/* CHART 2: RADAR CHART OF COMPETENCIES */}
-                <div className="col-span-6 rounded-xl border border-slate-200 bg-white p-3 flex flex-col justify-between">
+                <div
+                  className="col-span-6 rounded-xl border bg-white p-3 flex flex-col justify-between"
+                  style={{ borderColor: `${themeAccent}30` }}
+                >
                   <div>
                     <div className="mb-1.5 flex items-center justify-between border-b border-slate-100 pb-1.5">
                       <div className="flex items-center gap-1.5">
-                        <Compass className="h-4 w-4 text-teal-700" />
+                        <Compass className="h-4 w-4" style={{ color: themeAccent }} />
                         <h3 className="text-xs font-extrabold text-slate-900">
                           ثانياً: مخطط رادار التحكم في الكفايات والفقرات (Radar Chart)
                         </h3>
@@ -1260,18 +1324,18 @@ export const AnalyticsSummaryExportModal: React.FC<
                         {/* Average Completion Polygon */}
                         <polygon
                           points={completionPolygonPoints}
-                          fill="#1d4ed8"
+                          fill={themeSecondary}
                           fillOpacity={0.14}
-                          stroke="#1d4ed8"
+                          stroke={themeSecondary}
                           strokeWidth={1.8}
                         />
 
                         {/* Mastery Rate Polygon */}
                         <polygon
                           points={masteryPolygonPoints}
-                          fill="#0f766e"
+                          fill={themeAccent}
                           fillOpacity={0.25}
-                          stroke="#0f766e"
+                          stroke={themeAccent}
                           strokeWidth={2.2}
                         />
 
@@ -1284,7 +1348,7 @@ export const AnalyticsSummaryExportModal: React.FC<
                               cx={pt.x}
                               cy={pt.y}
                               r={3}
-                              fill="#0f766e"
+                              fill={themeAccent}
                               stroke="#ffffff"
                               strokeWidth={1}
                             />
@@ -1297,12 +1361,18 @@ export const AnalyticsSummaryExportModal: React.FC<
                   {/* Mini Table of Competencies */}
                   <div className="mt-1 space-y-1">
                     <div className="flex items-center justify-center gap-3 text-[9px] font-bold pb-1">
-                      <span className="inline-flex items-center gap-1 text-teal-800">
-                        <span className="h-2 w-2 rounded-full bg-teal-700" />
+                      <span className="inline-flex items-center gap-1" style={{ color: themeAccent }}>
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: themeAccent }}
+                        />
                         نسبة المتحكمين (%)
                       </span>
-                      <span className="inline-flex items-center gap-1 text-blue-800">
-                        <span className="h-2 w-2 rounded-full bg-blue-700" />
+                      <span className="inline-flex items-center gap-1" style={{ color: themeSecondary }}>
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: themeSecondary }}
+                        />
                         متوسط الإنجاز (%)
                       </span>
                       <span className="inline-flex items-center gap-1 text-red-700">
@@ -1313,7 +1383,7 @@ export const AnalyticsSummaryExportModal: React.FC<
 
                     <div className="overflow-hidden rounded-lg border border-slate-200">
                       <table className="w-full text-right text-[9.5px]">
-                        <thead className="bg-slate-50 font-bold text-slate-700 border-b border-slate-200">
+                        <thead className="font-bold border-b border-slate-200" style={summaryTableHeaderStyle}>
                           <tr>
                             <th className="px-2 py-1">الفقرة / الكفاية المستهدفة</th>
                             <th className="px-1.5 py-1 text-center">المتوسط</th>
@@ -1322,15 +1392,28 @@ export const AnalyticsSummaryExportModal: React.FC<
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                          {radarItems.slice(0, 5).map((it) => (
-                            <tr key={it.id}>
+                          {radarItems.slice(0, 5).map((it, idx) => (
+                            <tr
+                              key={it.id}
+                              style={
+                                idx % 2 === 1 && themeStripeTint
+                                  ? { backgroundColor: `${themeAccent}08` }
+                                  : undefined
+                              }
+                            >
                               <td className="px-2 py-1 font-semibold text-slate-800 truncate max-w-[175px]">
                                 {it.competency}
                               </td>
-                              <td className="px-1.5 py-1 text-center font-mono font-bold text-blue-800">
+                              <td
+                                className="px-1.5 py-1 text-center font-mono font-bold"
+                                style={{ color: themeSecondary }}
+                              >
                                 {it.averageScore.toFixed(1)}/{it.maxScore}
                               </td>
-                              <td className="px-1.5 py-1 text-center font-mono font-extrabold text-teal-800">
+                              <td
+                                className="px-1.5 py-1 text-center font-mono font-extrabold"
+                                style={{ color: themeAccent }}
+                              >
                                 {it.masteryPct.toFixed(0)}%
                               </td>
                               <td className="px-1.5 py-1 text-center font-bold">
@@ -1351,25 +1434,34 @@ export const AnalyticsSummaryExportModal: React.FC<
                 </div>
 
                 {/* CHART 3: ARCHIVE & LONGITUDINAL COMPARISON */}
-                <div className="col-span-6 rounded-xl border border-slate-200 bg-white p-3 flex flex-col justify-between">
+                <div
+                  className="col-span-6 rounded-xl border bg-white p-3 flex flex-col justify-between"
+                  style={{ borderColor: `${themeAccent}30` }}
+                >
                   <div>
                     <div className="mb-1.5 flex items-center justify-between border-b border-slate-100 pb-1.5">
                       <div className="flex items-center gap-1.5">
-                        <GitCompare className="h-4 w-4 text-teal-700" />
+                        <GitCompare className="h-4 w-4" style={{ color: themeAccent }} />
                         <h3 className="text-xs font-extrabold text-slate-900">
                           ثالثاً: المقارنة البيانية مع الأرشيف والتطور الدراسي
                         </h3>
                       </div>
                       <span
-                        className={`rounded px-2 py-0.5 text-[9.5px] font-bold border ${
-                          archiveComparisonData.deltaAverage >= 0
+                        className={`rounded px-2 py-0.5 text-[9px] font-bold border ${
+                          !archiveComparisonData.hasRealArchive
+                            ? 'bg-amber-50 text-amber-900 border-amber-200'
+                            : archiveComparisonData.deltaAverage >= 0
                             ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
                             : 'bg-red-50 text-red-900 border-red-200'
                         }`}
                       >
-                        {archiveComparisonData.deltaAverage >= 0 ? 'تطور إيجابي' : 'تراجع نسبي'} (
-                        {archiveComparisonData.deltaAverage >= 0 ? '+' : ''}
-                        {archiveComparisonData.deltaAverage.toFixed(2)} في المعدل)
+                        {!archiveComparisonData.hasRealArchive
+                          ? 'مرجع قياسي'
+                          : archiveComparisonData.deltaAverage >= 0
+                          ? 'تطور إيجابي'
+                          : 'تراجع نسبي'}{' '}
+                        ({archiveComparisonData.deltaAverage >= 0 ? '+' : ''}
+                        {archiveComparisonData.deltaAverage.toFixed(2)})
                       </span>
                     </div>
 
@@ -1400,7 +1492,7 @@ export const AnalyticsSummaryExportModal: React.FC<
                                 y={y + 3}
                                 textAnchor="end"
                                 fontSize="8"
-                                fill="#0f766e"
+                                fill={themeAccent}
                                 fontFamily="monospace"
                               >
                                 {avgVal.toFixed(0)}/20
@@ -1410,7 +1502,7 @@ export const AnalyticsSummaryExportModal: React.FC<
                                 y={y + 3}
                                 textAnchor="start"
                                 fontSize="8"
-                                fill="#1e3a8a"
+                                fill={themeSecondary}
                                 fontFamily="monospace"
                               >
                                 {pctVal.toFixed(0)}%
@@ -1441,8 +1533,9 @@ export const AnalyticsSummaryExportModal: React.FC<
                                 width={barW}
                                 height={avgH}
                                 rx={3}
-                                fill={item.isCurrent ? '#0f766e' : '#5eead4'}
-                                stroke="#0f766e"
+                                fill={themeAccent}
+                                fillOpacity={item.isCurrent ? 0.94 : 0.42}
+                                stroke={themeAccent}
                                 strokeWidth={1}
                               />
                               <text
@@ -1451,7 +1544,7 @@ export const AnalyticsSummaryExportModal: React.FC<
                                 textAnchor="middle"
                                 fontSize="8"
                                 fontWeight="800"
-                                fill="#0f766e"
+                                fill={themeAccent}
                                 fontFamily="monospace"
                               >
                                 {item.average.toFixed(2)}
@@ -1464,8 +1557,9 @@ export const AnalyticsSummaryExportModal: React.FC<
                                 width={barW}
                                 height={pctH}
                                 rx={3}
-                                fill={item.isCurrent ? '#1e3a8a' : '#93c5fd'}
-                                stroke="#1e3a8a"
+                                fill={themeSecondary}
+                                fillOpacity={item.isCurrent ? 0.94 : 0.42}
+                                stroke={themeSecondary}
                                 strokeWidth={1}
                               />
                               <text
@@ -1474,7 +1568,7 @@ export const AnalyticsSummaryExportModal: React.FC<
                                 textAnchor="middle"
                                 fontSize="8"
                                 fontWeight="800"
-                                fill="#1e3a8a"
+                                fill={themeSecondary}
                                 fontFamily="monospace"
                               >
                                 {item.passRate.toFixed(0)}%
@@ -1510,19 +1604,25 @@ export const AnalyticsSummaryExportModal: React.FC<
                   {/* Archive Comparison Summary Table */}
                   <div className="mt-1 space-y-1">
                     <div className="flex items-center justify-center gap-4 text-[9px] font-bold pb-1">
-                      <span className="inline-flex items-center gap-1 text-teal-800">
-                        <span className="h-2.5 w-2.5 rounded-xs bg-teal-700" />
+                      <span className="inline-flex items-center gap-1" style={{ color: themeAccent }}>
+                        <span
+                          className="h-2.5 w-2.5 rounded-xs"
+                          style={{ backgroundColor: themeAccent }}
+                        />
                         المعدل العام للقسم (/20)
                       </span>
-                      <span className="inline-flex items-center gap-1 text-blue-900">
-                        <span className="h-2.5 w-2.5 rounded-xs bg-blue-900" />
+                      <span className="inline-flex items-center gap-1" style={{ color: themeSecondary }}>
+                        <span
+                          className="h-2.5 w-2.5 rounded-xs"
+                          style={{ backgroundColor: themeSecondary }}
+                        />
                         نسبة التحكم والنجاح (%)
                       </span>
                     </div>
 
                     <div className="overflow-hidden rounded-lg border border-slate-200">
                       <table className="w-full text-right text-[9.5px]">
-                        <thead className="bg-slate-50 font-bold text-slate-700 border-b border-slate-200">
+                        <thead className="font-bold border-b border-slate-200" style={summaryTableHeaderStyle}>
                           <tr>
                             <th className="px-2 py-1">المحطة التقويمية</th>
                             <th className="px-1.5 py-1 text-center">المعدل</th>
@@ -1535,15 +1635,26 @@ export const AnalyticsSummaryExportModal: React.FC<
                           {archiveComparisonData.items.map((it) => (
                             <tr
                               key={it.id}
-                              className={it.isCurrent ? 'bg-teal-50/60 font-bold' : ''}
+                              className={it.isCurrent ? 'font-bold' : ''}
+                              style={
+                                it.isCurrent
+                                  ? { backgroundColor: `${themeAccent}12` }
+                                  : undefined
+                              }
                             >
                               <td className="px-2 py-1 font-semibold text-slate-800 truncate max-w-[135px]">
                                 {it.shortLabel}
                               </td>
-                              <td className="px-1.5 py-1 text-center font-mono font-bold text-teal-900">
+                              <td
+                                className="px-1.5 py-1 text-center font-mono font-bold"
+                                style={{ color: themeAccent }}
+                              >
                                 {it.average.toFixed(2)}
                               </td>
-                              <td className="px-1.5 py-1 text-center font-mono font-bold text-blue-900">
+                              <td
+                                className="px-1.5 py-1 text-center font-mono font-bold"
+                                style={{ color: themeSecondary }}
+                              >
                                 {it.passRate.toFixed(1)}%
                               </td>
                               <td className="px-1.5 py-1 text-center font-mono text-red-700">
@@ -1576,8 +1687,17 @@ export const AnalyticsSummaryExportModal: React.FC<
                   primarySource.template.headerConfig?.teacherSignatureText?.trim();
 
                 return (
-                  <div className="mt-3 rounded-xl border border-teal-200 bg-teal-50/40 p-3">
-                    <div className="text-[10.5px] font-extrabold text-teal-950 mb-1">
+                  <div
+                    className="mt-3 rounded-xl border p-3"
+                    style={{
+                      borderColor: `${themeAccent}38`,
+                      backgroundColor: `${themeAccent}08`,
+                    }}
+                  >
+                    <div
+                      className="text-[10.5px] font-extrabold mb-1"
+                      style={{ color: themeAccent }}
+                    >
                       رابعاً: خلاصة تركيبية وتوصيات بيداغوجية للمجلس التعليمي ومجلس القسم (وفق المذكرة 142-08)
                     </div>
                     <p className="text-[10px] leading-relaxed text-slate-800">
@@ -1621,7 +1741,10 @@ export const AnalyticsSummaryExportModal: React.FC<
                       .
                     </p>
 
-                    <div className="mt-2.5 grid grid-cols-3 gap-3 pt-2 border-t border-teal-200/80 text-center text-[10px] font-bold text-slate-700">
+                    <div
+                      className="mt-2.5 grid grid-cols-3 gap-3 pt-2 border-t text-center text-[10px] font-bold text-slate-700"
+                      style={{ borderColor: `${themeAccent}30` }}
+                    >
                       <div className="rounded border border-slate-200 bg-white py-2 px-3 flex flex-col items-center justify-between">
                         <div>توقيع الأستاذ(ة) المنجز(ة)</div>
                         <div className="mt-1 text-[9px] font-semibold text-slate-700">
@@ -1635,7 +1758,10 @@ export const AnalyticsSummaryExportModal: React.FC<
                             className="mt-1 max-h-6 max-w-[110px] object-contain"
                           />
                         ) : sigTxt ? (
-                          <div className="mt-1 font-serif text-[10px] font-bold italic text-teal-800">
+                          <div
+                            className="mt-1 font-serif text-[10px] font-bold italic"
+                            style={{ color: themeAccent }}
+                          >
                             {sigTxt}
                           </div>
                         ) : (

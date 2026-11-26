@@ -264,7 +264,17 @@ export interface ReportColorTheme {
   accentColor: string;
   secondaryAccent: string;
   swatchBg: string;
+  chartPalette: [string, string, string, string, string];
+  recommendedTableHeaderBg: 'tinted' | 'solid-accent' | 'neutral';
 }
+
+export const SEMANTIC_CHART_PALETTE: [string, string, string, string, string] = [
+  '#dc2626',
+  '#ea580c',
+  '#2563eb',
+  '#0d9488',
+  '#16a34a',
+];
 
 export const REPORT_COLOR_THEMES: ReportColorTheme[] = [
   {
@@ -274,6 +284,8 @@ export const REPORT_COLOR_THEMES: ReportColorTheme[] = [
     accentColor: '#1e3a8a',
     secondaryAccent: '#0f766e',
     swatchBg: '#eff6ff',
+    chartPalette: ['#b91c1c', '#d97706', '#3b82f6', '#0d9488', '#1e3a8a'],
+    recommendedTableHeaderBg: 'solid-accent',
   },
   {
     id: 'ministry-emerald',
@@ -282,6 +294,8 @@ export const REPORT_COLOR_THEMES: ReportColorTheme[] = [
     accentColor: '#0f766e',
     secondaryAccent: '#1e3a8a',
     swatchBg: '#f0fdfa',
+    chartPalette: ['#be123c', '#ea580c', '#0284c7', '#14b8a6', '#0f766e'],
+    recommendedTableHeaderBg: 'solid-accent',
   },
   {
     id: 'charcoal-slate',
@@ -290,6 +304,8 @@ export const REPORT_COLOR_THEMES: ReportColorTheme[] = [
     accentColor: '#1e293b',
     secondaryAccent: '#0284c7',
     swatchBg: '#f8fafc',
+    chartPalette: ['#991b1b', '#c2410c', '#64748b', '#0284c7', '#1e293b'],
+    recommendedTableHeaderBg: 'solid-accent',
   },
   {
     id: 'moroccan-burgundy',
@@ -298,6 +314,8 @@ export const REPORT_COLOR_THEMES: ReportColorTheme[] = [
     accentColor: '#7c2d12',
     secondaryAccent: '#b45309',
     swatchBg: '#fff7ed',
+    chartPalette: ['#991b1b', '#c2410c', '#d97706', '#0f766e', '#7c2d12'],
+    recommendedTableHeaderBg: 'tinted',
   },
   {
     id: 'deep-indigo',
@@ -306,6 +324,8 @@ export const REPORT_COLOR_THEMES: ReportColorTheme[] = [
     accentColor: '#312e81',
     secondaryAccent: '#0d9488',
     swatchBg: '#eef2ff',
+    chartPalette: ['#be123c', '#d97706', '#6366f1', '#0d9488', '#312e81'],
+    recommendedTableHeaderBg: 'solid-accent',
   },
   {
     id: 'royal-emerald-gold',
@@ -314,6 +334,8 @@ export const REPORT_COLOR_THEMES: ReportColorTheme[] = [
     accentColor: '#065f46',
     secondaryAccent: '#b45309',
     swatchBg: '#ecfdf5',
+    chartPalette: ['#9f1239', '#d97706', '#b45309', '#059669', '#065f46'],
+    recommendedTableHeaderBg: 'solid-accent',
   },
   {
     id: 'sapphire-gold',
@@ -322,6 +344,8 @@ export const REPORT_COLOR_THEMES: ReportColorTheme[] = [
     accentColor: '#172554',
     secondaryAccent: '#a16207',
     swatchBg: '#eff6ff',
+    chartPalette: ['#b91c1c', '#ca8a04', '#2563eb', '#0f766e', '#172554'],
+    recommendedTableHeaderBg: 'solid-accent',
   },
   {
     id: 'olive-heritage',
@@ -330,8 +354,143 @@ export const REPORT_COLOR_THEMES: ReportColorTheme[] = [
     accentColor: '#365314',
     secondaryAccent: '#0f766e',
     swatchBg: '#f7fee7',
+    chartPalette: ['#b91c1c', '#d97706', '#65a30d', '#0f766e', '#365314'],
+    recommendedTableHeaderBg: 'tinted',
   },
 ];
+
+function isValidHexColor(val: unknown): val is string {
+  return typeof val === 'string' && /^#[0-9a-fA-F]{6}$/.test(val.trim());
+}
+
+function mixHexColors(hexA: string, hexB: string, weightA = 0.5): string {
+  if (!isValidHexColor(hexA) || !isValidHexColor(hexB)) return hexA;
+  const parse = (h: string) => [
+    parseInt(h.slice(1, 3), 16),
+    parseInt(h.slice(3, 5), 16),
+    parseInt(h.slice(5, 7), 16),
+  ];
+  const [r1, g1, b1] = parse(hexA);
+  const [r2, g2, b2] = parse(hexB);
+  const w = Math.min(1, Math.max(0, weightA));
+  const mix = (a: number, b: number) =>
+    Math.round(a * w + b * (1 - w))
+      .toString(16)
+      .padStart(2, '0');
+  return `#${mix(r1, r2)}${mix(g1, g2)}${mix(b1, b2)}`;
+}
+
+export function buildHarmonizedChartPalette(
+  accentColor: string,
+  secondaryAccent: string
+): [string, string, string, string, string] {
+  const safeAccent = isValidHexColor(accentColor) ? accentColor : '#1e3a8a';
+  const safeSecondary = isValidHexColor(secondaryAccent) ? secondaryAccent : '#0f766e';
+  const midBlend = mixHexColors(safeAccent, safeSecondary, 0.45);
+  return ['#b91c1c', '#d97706', midBlend, safeSecondary, safeAccent];
+}
+
+export function resolveThemeChartPalette(
+  styleConfig?: ReportTemplateSchema['styleConfig']
+): string[] {
+  if (!styleConfig) return SEMANTIC_CHART_PALETTE;
+  if (styleConfig.chartColorMode === 'semantic') {
+    return SEMANTIC_CHART_PALETTE;
+  }
+  if (
+    Array.isArray(styleConfig.chartPalette) &&
+    styleConfig.chartPalette.length >= 5 &&
+    styleConfig.chartPalette.every(isValidHexColor)
+  ) {
+    return styleConfig.chartPalette;
+  }
+  const matchedTheme = REPORT_COLOR_THEMES.find(
+    (t) =>
+      t.id === styleConfig.themeId ||
+      (t.accentColor.toLowerCase() === (styleConfig.accentColor || '').toLowerCase() &&
+        t.secondaryAccent.toLowerCase() === (styleConfig.secondaryAccent || '').toLowerCase())
+  );
+  if (matchedTheme && styleConfig.chartColorMode === 'theme-harmonized') {
+    return matchedTheme.chartPalette;
+  }
+  if (styleConfig.chartColorMode === 'theme-harmonized') {
+    return buildHarmonizedChartPalette(
+      styleConfig.accentColor || '#1e3a8a',
+      styleConfig.secondaryAccent || '#0f766e'
+    );
+  }
+  return SEMANTIC_CHART_PALETTE;
+}
+
+export function resolveBracketDisplayColor(
+  bracket: ScoreBracket,
+  index: number,
+  styleConfig?: ReportTemplateSchema['styleConfig']
+): string {
+  if (styleConfig?.chartColorMode === 'theme-harmonized') {
+    const palette = resolveThemeChartPalette(styleConfig);
+    return palette[index % palette.length] || bracket.colorHex || SEMANTIC_CHART_PALETTE[index % 5];
+  }
+  return bracket.colorHex || SEMANTIC_CHART_PALETTE[index % SEMANTIC_CHART_PALETTE.length];
+}
+
+export function resolveScoreBinColor(
+  score: number,
+  styleConfig?: ReportTemplateSchema['styleConfig'],
+  brackets?: ScoreBracket[]
+): string {
+  const palette = resolveThemeChartPalette(styleConfig);
+  if (brackets && brackets.length > 0) {
+    const idx = brackets.findIndex((b) =>
+      b.inclusiveMax ? score >= b.min && score <= b.max : score >= b.min && score < b.max
+    );
+    if (idx >= 0) {
+      return resolveBracketDisplayColor(brackets[idx], idx, styleConfig);
+    }
+  }
+  if (score < 5) return palette[0];
+  if (score < 10) return palette[1];
+  if (score < 14) return palette[2];
+  if (score < 17) return palette[3];
+  return palette[4];
+}
+
+export function applyColorThemeToTemplate(
+  prev: ReportTemplateSchema,
+  theme: ReportColorTheme,
+  options?: {
+    syncTableHeader?: boolean;
+    syncBrackets?: boolean;
+  }
+): ReportTemplateSchema {
+  const syncTableHeader = options?.syncTableHeader ?? false;
+  const syncBrackets = options?.syncBrackets ?? true;
+  const nextMode = prev.styleConfig.chartColorMode ?? 'theme-harmonized';
+  const nextPalette = [...theme.chartPalette];
+  const activeColors = nextMode === 'semantic' ? SEMANTIC_CHART_PALETTE : nextPalette;
+
+  return {
+    ...prev,
+    styleConfig: {
+      ...prev.styleConfig,
+      themeId: theme.id,
+      accentColor: theme.accentColor,
+      secondaryAccent: theme.secondaryAccent,
+      chartPalette: nextPalette,
+      chartColorMode: nextMode,
+      tableStripeTint: prev.styleConfig.tableStripeTint ?? true,
+      tableHeaderBg: syncTableHeader
+        ? theme.recommendedTableHeaderBg
+        : prev.styleConfig.tableHeaderBg,
+    },
+    brackets: syncBrackets
+      ? prev.brackets.map((b, idx) => ({
+          ...b,
+          colorHex: activeColors[idx % activeColors.length],
+        }))
+      : prev.brackets,
+  };
+}
 
 export const EXAM_NUMBER_OPTIONS: {
   id: string;

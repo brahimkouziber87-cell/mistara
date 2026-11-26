@@ -45,8 +45,12 @@ export interface SavedInstitutionSettings {
   excellenceThreshold: number;
   brackets: ScoreBracket[];
   styleConfig: {
+    themeId?: string;
     accentColor: string;
     secondaryAccent?: string;
+    chartPalette?: string[];
+    chartColorMode?: ReportTemplateSchema['styleConfig']['chartColorMode'];
+    tableStripeTint?: boolean;
     borderStyle?: ReportTemplateSchema['styleConfig']['borderStyle'];
     frameStyle?: ReportFrameStyle;
     fontFamily: ReportFontFamily;
@@ -283,6 +287,10 @@ export function getInitialTemplate(): ReportTemplateSchema {
     brackets: validBrackets,
     styleConfig: {
       ...base.styleConfig,
+      themeId:
+        typeof saved.styleConfig?.themeId === 'string' && saved.styleConfig.themeId
+          ? saved.styleConfig.themeId
+          : base.styleConfig.themeId,
       accentColor:
         typeof saved.styleConfig?.accentColor === 'string' && saved.styleConfig.accentColor
           ? saved.styleConfig.accentColor
@@ -291,6 +299,21 @@ export function getInitialTemplate(): ReportTemplateSchema {
         typeof saved.styleConfig?.secondaryAccent === 'string' && saved.styleConfig.secondaryAccent
           ? saved.styleConfig.secondaryAccent
           : base.styleConfig.secondaryAccent,
+      chartPalette:
+        Array.isArray(saved.styleConfig?.chartPalette) &&
+        saved.styleConfig.chartPalette.length >= 5 &&
+        saved.styleConfig.chartPalette.every((c) => typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c))
+          ? saved.styleConfig.chartPalette
+          : base.styleConfig.chartPalette,
+      chartColorMode:
+        saved.styleConfig?.chartColorMode === 'theme-harmonized' ||
+        saved.styleConfig?.chartColorMode === 'semantic'
+          ? saved.styleConfig.chartColorMode
+          : base.styleConfig.chartColorMode,
+      tableStripeTint:
+        typeof saved.styleConfig?.tableStripeTint === 'boolean'
+          ? saved.styleConfig.tableStripeTint
+          : base.styleConfig.tableStripeTint,
       borderStyle:
         saved.styleConfig?.borderStyle === 'section-banners' ||
         saved.styleConfig?.borderStyle === 'official-double' ||
@@ -382,7 +405,12 @@ export function getInitialTemplate(): ReportTemplateSchema {
             typeof saved.remediationCardsConfig.includeAbsent === 'boolean'
               ? saved.remediationCardsConfig.includeAbsent
               : true,
-          cardsPerSheet: saved.remediationCardsConfig.cardsPerSheet === 2 ? 2 : 4,
+          cardsPerSheet:
+            saved.remediationCardsConfig.cardsPerSheet === 2
+              ? 2
+              : saved.remediationCardsConfig.cardsPerSheet === 3
+              ? 3
+              : 4,
           showParentSignature:
             typeof saved.remediationCardsConfig.showParentSignature === 'boolean'
               ? saved.remediationCardsConfig.showParentSignature
@@ -450,8 +478,12 @@ export function saveInstitutionSettings(
       excellenceThreshold: template.excellenceThreshold,
       brackets: template.brackets,
       styleConfig: {
+        themeId: template.styleConfig.themeId,
         accentColor: template.styleConfig.accentColor,
         secondaryAccent: template.styleConfig.secondaryAccent,
+        chartPalette: template.styleConfig.chartPalette,
+        chartColorMode: template.styleConfig.chartColorMode,
+        tableStripeTint: template.styleConfig.tableStripeTint,
         borderStyle: template.styleConfig.borderStyle,
         frameStyle: template.styleConfig.frameStyle,
         fontFamily: template.styleConfig.fontFamily,

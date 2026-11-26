@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { getWordFontFamily } from '../data/presets';
+import { getWordFontFamily, resolveBracketDisplayColor } from '../data/presets';
 import {
   getLocalizedAppreciation,
   getReportLabels,
@@ -1684,6 +1684,15 @@ export function exportReportToWordDoc(
       : template.styleConfig.tableHeaderBg === 'tinted'
       ? `background:${accent}18; color:${accent};`
       : 'background:#f1f5f9; color:#0f172a;';
+  const secondaryThBgStyle =
+    template.styleConfig.tableHeaderBg === 'solid-accent'
+      ? `background:${secondaryAccent}; color:#ffffff;`
+      : template.styleConfig.tableHeaderBg === 'tinted'
+      ? `background:${secondaryAccent}18; color:${secondaryAccent};`
+      : 'background:#f1f5f9; color:#0f172a;';
+  const useStripeTint = template.styleConfig.tableStripeTint !== false;
+  const primaryRowBg = useStripeTint ? `${accent}0a` : '#f8fafc';
+  const secondaryRowBg = useStripeTint ? `${secondaryAccent}0a` : '#f8fafc';
 
   const enabledSections = template.sections.filter((s) => s.enabled);
 
@@ -1858,13 +1867,20 @@ export function exportReportToWordDoc(
             </tr>
             ${stats.bracketsBreakdown
               .map(
-                (b) => `
-              <tr>
+                (b, idx) => {
+                  const brColor = resolveBracketDisplayColor(
+                    b.bracket,
+                    idx,
+                    template.styleConfig
+                  );
+                  return `
+              <tr style="${idx % 2 === 1 ? `background:${primaryRowBg};` : ''}">
                 <td style="border:1px solid #cbd5e1; padding:5px; font-weight:bold; direction:ltr;">${esc(b.bracket.label)}</td>
-                <td style="border:1px solid #cbd5e1; padding:5px; font-weight:bold;">${esc(translateBracketAppreciation(b.bracket.appreciation, lang))}</td>
+                <td style="border:1px solid #cbd5e1; padding:5px; font-weight:bold;"><span style="display:inline-block; width:8px; height:8px; background:${brColor}; margin:0 4px;"></span>${esc(translateBracketAppreciation(b.bracket.appreciation, lang))}</td>
                 <td style="border:1px solid #cbd5e1; padding:5px; font-weight:bold;">${b.count}</td>
                 <td style="border:1px solid #cbd5e1; padding:5px;">${formatPct(b.percentage)}</td>
-              </tr>`
+              </tr>`;
+                }
               )
               .join('')}
           </table>
@@ -1885,13 +1901,18 @@ export function exportReportToWordDoc(
               <th style="border:1px solid #cbd5e1; padding:5px; width:14%;">${esc(labels.bracketColCount)}</th>
             </tr>
             ${stats.bracketsBreakdown
-              .map((b) => {
-                const barColor = /^#[0-9a-fA-F]{3,8}$/.test(b.bracket.colorHex || '')
-                  ? b.bracket.colorHex
+              .map((b, idx) => {
+                const resolvedColor = resolveBracketDisplayColor(
+                  b.bracket,
+                  idx,
+                  template.styleConfig
+                );
+                const barColor = /^#[0-9a-fA-F]{3,8}$/.test(resolvedColor || '')
+                  ? resolvedColor
                   : accent;
                 const widthPct = Math.max(2, Math.round(b.percentage));
                 return `
-              <tr>
+              <tr style="${idx % 2 === 1 ? `background:${primaryRowBg};` : ''}">
                 <td style="border:1px solid #cbd5e1; padding:5px; text-align:center; font-weight:bold; direction:ltr;">${esc(b.bracket.label)}</td>
                 <td style="border:1px solid #cbd5e1; padding:5px; text-align:center; font-weight:bold;">${esc(translateBracketAppreciation(b.bracket.appreciation, lang))}</td>
                 <td style="border:1px solid #cbd5e1; padding:5px;">
@@ -2008,8 +2029,8 @@ export function exportReportToWordDoc(
             </tr>
             ${template.pedagogicalContent.remediationActions
               .map(
-                (r) => `
-              <tr>
+                (r, idx) => `
+              <tr style="${idx % 2 === 1 ? `background:${primaryRowBg};` : ''}">
                 <td style="border:1px solid #cbd5e1; padding:5px; font-weight:bold;">${esc(r.targetGroup)}</td>
                 <td style="border:1px solid #cbd5e1; padding:5px;">${esc(r.competencies)}</td>
                 <td style="border:1px solid #cbd5e1; padding:5px;">${esc(r.activity)}</td>
@@ -2063,7 +2084,7 @@ export function exportReportToWordDoc(
                   ${students
                     .map(
                       (st, idx) => `
-                    <tr>
+                    <tr style="${idx % 2 === 1 ? `background:${primaryRowBg};` : ''}">
                       <td style="border:1px solid #cbd5e1; padding:${cellPad}; text-align:center;">${st.order || idx + 1}</td>
                       <td style="border:1px solid #cbd5e1; padding:${cellPad};">${esc(st.fullName)}</td>
                       <td style="border:1px solid #cbd5e1; padding:${cellPad}; text-align:center; font-weight:bold; color:${st.isAbsent || st.score === null ? '#64748b' : st.score >= template.passThreshold ? '#047857' : '#b91c1c'};">${st.isAbsent || st.score === null ? esc(labels.absentLabel) : st.score.toFixed(2)}</td>
@@ -2077,7 +2098,7 @@ export function exportReportToWordDoc(
                   ${esc(labels.meritRosterTitle)}
                 </div>
                 <table style="width:100%; border-collapse:collapse; font-size:${rowFont};">
-                  <tr style="${thBgStyle}">
+                  <tr style="${secondaryThBgStyle}">
                     <th style="border:1px solid #cbd5e1; padding:${cellPad};">${esc(labels.colRank)}</th>
                     <th style="border:1px solid #cbd5e1; padding:${cellPad};">${esc(labels.colStudentName)}</th>
                     <th style="border:1px solid #cbd5e1; padding:${cellPad};">${esc(labels.colScoreShort)}</th>
@@ -2121,8 +2142,8 @@ export function exportReportToWordDoc(
                                </tr>`
                             : ''
                         }
-                        <tr>
-                          <td style="border:1px solid #cbd5e1; padding:${cellPad}; text-align:center; font-weight:bold;">${idx + 1}</td>
+                        <tr style="${idx % 2 === 1 ? `background:${secondaryRowBg};` : ''}">
+                          <td style="border:1px solid #cbd5e1; padding:${cellPad}; text-align:center; font-weight:bold;${idx < 3 && !isAbsent ? ` background:${secondaryAccent}18; color:${secondaryAccent};` : ''}">${idx + 1}</td>
                           <td style="border:1px solid #cbd5e1; padding:${cellPad};">${esc(s.fullName)}</td>
                           <td style="border:1px solid #cbd5e1; padding:${cellPad}; text-align:center; font-weight:bold; color:${isAbsent ? '#92400e' : isPass ? '#047857' : '#b91c1c'};">${effectiveScore.toFixed(2)}</td>
                           <td style="border:1px solid #cbd5e1; padding:${cellPad}; text-align:center;">${esc(status)}</td>
@@ -2220,7 +2241,7 @@ export function exportReportToWordDoc(
                   lang
                 );
                 return `
-                  <tr>
+                  <tr style="${idx % 2 === 1 ? `background:${primaryRowBg};` : ''}">
                     <td style="border:1px solid #cbd5e1; padding:3px; text-align:center;">${idx + 1}</td>
                     <td style="border:1px solid #cbd5e1; padding:3px; text-align:center;">${esc(s.code)}</td>
                     <td style="border:1px solid #cbd5e1; padding:3px;">${esc(s.fullName)}</td>

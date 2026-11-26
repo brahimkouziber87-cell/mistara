@@ -19,6 +19,7 @@ import {
   ZoomOut,
 } from 'lucide-react';
 import {
+  applyColorThemeToTemplate,
   REPORT_COLOR_THEMES,
   REPORT_FONT_OPTIONS,
   REPORT_FRAME_OPTIONS,
@@ -282,7 +283,8 @@ export const ReportPreviewStep: React.FC<ReportPreviewStepProps> = ({
   const postImpact = computePostRemediationImpact(remediationTargetStudents, template);
   const hasPostImpactSheet =
     documentMode === 'inspection' && postImpact.evaluatedCount > 0 ? 1 : 0;
-  const cardsPerSheet = cardsConfig.cardsPerSheet === 2 ? 2 : 4;
+  const cardsPerSheet =
+    cardsConfig.cardsPerSheet === 2 ? 2 : cardsConfig.cardsPerSheet === 3 ? 3 : 4;
   const remediationSheetsCount =
     documentMode === 'inspection' && remediationTargetStudents.length === 0
       ? 0
@@ -600,14 +602,12 @@ export const ReportPreviewStep: React.FC<ReportPreviewStepProps> = ({
                       title={`${theme.name} — ${theme.subtitle}`}
                       aria-label={theme.name}
                       onClick={() =>
-                        onUpdateTemplate((prev) => ({
-                          ...prev,
-                          styleConfig: {
-                            ...prev.styleConfig,
-                            accentColor: theme.accentColor,
-                            secondaryAccent: theme.secondaryAccent,
-                          },
-                        }))
+                        onUpdateTemplate((prev) =>
+                          applyColorThemeToTemplate(prev, theme, {
+                            syncTableHeader: false,
+                            syncBrackets: true,
+                          })
+                        )
                       }
                       className={`flex h-6 w-6 overflow-hidden rounded-md border transition-transform cursor-pointer ${
                         isActive

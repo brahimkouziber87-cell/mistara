@@ -86,7 +86,8 @@ export const RemediationCardsConfigPanel: React.FC<RemediationCardsConfigPanelPr
     () => computePostRemediationImpact(targetStudents, template),
     [targetStudents, template]
   );
-  const cardsPerSheet = config.cardsPerSheet === 2 ? 2 : 4;
+  const cardsPerSheet =
+    config.cardsPerSheet === 2 ? 2 : config.cardsPerSheet === 3 ? 3 : 4;
   const sheetsCount = Math.ceil(targetStudents.length / cardsPerSheet);
 
   const activeStudent =
@@ -255,7 +256,7 @@ export const RemediationCardsConfigPanel: React.FC<RemediationCardsConfigPanelPr
       {/* Main Controls Grid */}
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-12">
         {/* Target Filter Selection */}
-        <div className="lg:col-span-5 space-y-2">
+        <div className="lg:col-span-4 space-y-2">
           <label className="block text-xs font-bold text-slate-800">
             1. الفئة المستهدفة بالبطاقات الفردية:
           </label>
@@ -327,11 +328,11 @@ export const RemediationCardsConfigPanel: React.FC<RemediationCardsConfigPanelPr
         </div>
 
         {/* Layout Density & Options */}
-        <div className="lg:col-span-4 space-y-2">
+        <div className="lg:col-span-5 space-y-2">
           <label className="block text-xs font-bold text-slate-800">
             2. تخطيط الصفحة (A4) وخيارات البطاقة:
           </label>
-          <div className="grid grid-cols-2 gap-1.5">
+          <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-3">
             {(
               [
                 {
@@ -340,9 +341,14 @@ export const RemediationCardsConfigPanel: React.FC<RemediationCardsConfigPanelPr
                   sub: 'شبكة 2×2 قياسية للدفتر',
                 },
                 {
+                  val: 3 as RemediationCardsPerSheet,
+                  title: '3 بطاقات في الصفحة',
+                  sub: '3 صفوف أفقية (ثلث A4)',
+                },
+                {
                   val: 2 as RemediationCardsPerSheet,
                   title: 'بطاقتان في الصفحة',
-                  sub: 'حجم موسع (نصف صفحة A5)',
+                  sub: 'حجم موسع (نصف A5)',
                 },
               ]
             ).map((layoutOpt) => {

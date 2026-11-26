@@ -1,6 +1,10 @@
 import React from 'react';
 import { Cell, Pie, PieChart } from 'recharts';
-import { getReportFontClass } from '../data/presets';
+import {
+  getReportFontClass,
+  resolveBracketDisplayColor,
+  resolveScoreBinColor,
+} from '../data/presets';
 import {
   getLocalizedAppreciation,
   getReportLabels,
@@ -59,10 +63,13 @@ const BRACKET_PALETTE = ['#dc2626', '#ea580c', '#2563eb', '#0d9488', '#16a34a', 
 const DonutDistributionSvg: React.FC<{
   stats: ComputedStats;
   accentColor: string;
+  styleConfig?: ReportTemplateSchema['styleConfig'];
   labels: LocalizedReportLabels;
-}> = ({ stats, accentColor, labels }) => {
+}> = ({ stats, accentColor, styleConfig, labels }) => {
   const segments = stats.bracketsBreakdown.map((item, idx) => {
-    const color = item.bracket.colorHex || BRACKET_PALETTE[idx % BRACKET_PALETTE.length];
+    const color =
+      resolveBracketDisplayColor(item.bracket, idx, styleConfig) ||
+      BRACKET_PALETTE[idx % BRACKET_PALETTE.length];
     const pct = stats.present > 0 ? (item.count / stats.present) * 100 : 0;
     return { item, color, pct };
   });
@@ -166,8 +173,9 @@ const BarChartSvg: React.FC<{
   stats: ComputedStats;
   horizontal?: boolean;
   accentColor: string;
+  styleConfig?: ReportTemplateSchema['styleConfig'];
   labels: LocalizedReportLabels;
-}> = ({ stats, horizontal = false, accentColor, labels }) => {
+}> = ({ stats, horizontal = false, accentColor, styleConfig, labels }) => {
   const maxCount = Math.max(1, ...stats.bracketsBreakdown.map((b) => b.count));
 
   if (horizontal) {
@@ -175,7 +183,9 @@ const BarChartSvg: React.FC<{
       <div className="space-y-2 py-2">
         {stats.bracketsBreakdown.map((item, idx) => {
           const widthPct = (item.count / maxCount) * 100;
-          const color = item.bracket.colorHex || BRACKET_PALETTE[idx % BRACKET_PALETTE.length];
+          const color =
+            resolveBracketDisplayColor(item.bracket, idx, styleConfig) ||
+            BRACKET_PALETTE[idx % BRACKET_PALETTE.length];
           return (
             <div key={item.bracket.id} className="grid grid-cols-12 items-center gap-2 text-xs">
               <span className="col-span-4 truncate font-semibold text-slate-700">
@@ -201,7 +211,9 @@ const BarChartSvg: React.FC<{
     <div className="flex h-40 items-end justify-around gap-3 border-b border-slate-300 px-4 pt-6 pb-2">
       {stats.bracketsBreakdown.map((item, idx) => {
         const heightPct = (item.count / maxCount) * 100;
-        const color = item.bracket.colorHex || BRACKET_PALETTE[idx % BRACKET_PALETTE.length];
+        const color =
+          resolveBracketDisplayColor(item.bracket, idx, styleConfig) ||
+          BRACKET_PALETTE[idx % BRACKET_PALETTE.length];
         return (
           <div key={item.bracket.id} className="flex flex-1 flex-col items-center gap-1.5 h-full justify-end">
             <span className="font-mono text-[10px] font-bold tabular-nums text-slate-700">
@@ -236,6 +248,7 @@ const GaussDistributionReportSvg: React.FC<{
   passThreshold: number;
   accentColor: string;
   secondaryAccent: string;
+  styleConfig?: ReportTemplateSchema['styleConfig'];
   labels: LocalizedReportLabels;
   withSideLegend?: boolean;
 }> = ({
@@ -244,6 +257,7 @@ const GaussDistributionReportSvg: React.FC<{
   passThreshold,
   accentColor,
   secondaryAccent,
+  styleConfig,
   labels,
   withSideLegend = true,
 }) => {
@@ -255,6 +269,7 @@ const GaussDistributionReportSvg: React.FC<{
   const sigma = stats.present > 0 ? Math.max(0.75, stats.stdDev) : 2.5;
   const refMean = 12;
   const refSigma = 2.6;
+  const bracketList = stats.bracketsBreakdown.map((b) => b.bracket);
 
   // 10 intervals of width 2: [0-2[, [2-4[, ..., [18-20]
   const binWidth = 2;
@@ -267,16 +282,7 @@ const GaussDistributionReportSvg: React.FC<{
       isLast ? sc >= min && sc <= max : sc >= min && sc < max
     ).length;
     const pct = (count / n) * 100;
-    const color =
-      center < 5
-        ? '#dc2626'
-        : center < 10
-        ? '#ea580c'
-        : center < 14
-        ? '#2563eb'
-        : center < 18
-        ? '#0d9488'
-        : '#16a34a';
+    const color = resolveScoreBinColor(center, styleConfig, bracketList);
     return { idx, min, max, center, count, pct, color };
   });
 
@@ -324,7 +330,9 @@ const GaussDistributionReportSvg: React.FC<{
   const withinSigmaPct = stats.present > 0 ? (withinSigmaCount / n) * 100 : 0;
 
   const segments = stats.bracketsBreakdown.map((item, idx) => {
-    const color = item.bracket.colorHex || BRACKET_PALETTE[idx % BRACKET_PALETTE.length];
+    const color =
+      resolveBracketDisplayColor(item.bracket, idx, styleConfig) ||
+      BRACKET_PALETTE[idx % BRACKET_PALETTE.length];
     const pct = stats.present > 0 ? (item.count / stats.present) * 100 : 0;
     return { item, color, pct };
   });
@@ -406,7 +414,7 @@ const GaussDistributionReportSvg: React.FC<{
           {/* Reference Benchmark Gaussian Curve N(12, 2.6) */}
           <polyline
             fill="none"
-            stroke="#6366f1"
+            stroke="#64748b"
             strokeWidth={1.3}
             strokeDasharray="3.5 2.5"
             points={refLinePoints}
@@ -513,7 +521,7 @@ const GaussDistributionReportSvg: React.FC<{
             textAnchor="end"
             fontSize="6.8"
             fontWeight="600"
-            fill="#4f46e5"
+            fill="#475569"
           >
             --- المنحنى المرجعي 142-08 (μ=12) · [μ±σ]: {withinSigmaPct.toFixed(0)}%
           </text>
@@ -589,8 +597,17 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
     template.styleConfig.tableHeaderBg === 'solid-accent'
       ? { backgroundColor: accent, color: '#ffffff' }
       : template.styleConfig.tableHeaderBg === 'tinted'
-      ? { backgroundColor: `${accent}14`, color: accent }
-      : undefined;
+      ? { backgroundColor: `${accent}16`, color: accent }
+      : { backgroundColor: '#f1f5f9', color: '#0f172a' };
+  const secondaryTableHeaderStyle: React.CSSProperties | undefined =
+    template.styleConfig.tableHeaderBg === 'solid-accent'
+      ? { backgroundColor: secondaryAccent, color: '#ffffff' }
+      : template.styleConfig.tableHeaderBg === 'tinted'
+      ? { backgroundColor: `${secondaryAccent}16`, color: secondaryAccent }
+      : { backgroundColor: '#f1f5f9', color: '#0f172a' };
+  const useStripeTint = template.styleConfig.tableStripeTint !== false;
+  const primaryRowTint = useStripeTint ? `${accent}08` : '#f8fafc';
+  const secondaryRowTint = useStripeTint ? `${secondaryAccent}08` : '#f8fafc';
   const isBannerStyle = template.styleConfig.borderStyle === 'section-banners';
   const docimology = computeDocimologicalSummary(
     stats,
@@ -627,7 +644,8 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
     template
   );
   const hasPostImpactSheet = isInspection && postImpact.evaluatedCount > 0;
-  const cardsPerSheet = cardsConfig.cardsPerSheet === 2 ? 2 : 4;
+  const cardsPerSheet =
+    cardsConfig.cardsPerSheet === 2 ? 2 : cardsConfig.cardsPerSheet === 3 ? 3 : 4;
   const remediationSheetsCount = showRemediationCards
     ? documentMode === 'inspection' && targetRemediationStudents.length === 0
       ? 0
@@ -1083,13 +1101,28 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {stats.bracketsBreakdown.map((b) => (
-                    <tr key={b.bracket.id}>
+                  {stats.bracketsBreakdown.map((b, idx) => (
+                    <tr
+                      key={b.bracket.id}
+                      style={idx % 2 === 1 ? { backgroundColor: primaryRowTint } : undefined}
+                    >
                       <td className="border border-slate-300 px-2 py-0.5 font-mono font-bold" dir="ltr">
                         {b.bracket.label}
                       </td>
                       <td className="border border-slate-300 px-2 py-0.5 font-semibold">
-                        {translateBracketAppreciation(b.bracket.appreciation, lang)}
+                        <span className="inline-flex items-center gap-1.5">
+                          <span
+                            className="inline-block h-2 w-2 rounded-xs shrink-0"
+                            style={{
+                              backgroundColor: resolveBracketDisplayColor(
+                                b.bracket,
+                                idx,
+                                template.styleConfig
+                              ),
+                            }}
+                          />
+                          <span>{translateBracketAppreciation(b.bracket.appreciation, lang)}</span>
+                        </span>
                       </td>
                       <td className="border border-slate-300 px-2 py-0.5 font-mono font-bold tabular-nums">
                         {b.count}
@@ -1131,6 +1164,7 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                   passThreshold={template.passThreshold}
                   accentColor={accent}
                   secondaryAccent={secondaryAccent}
+                  styleConfig={template.styleConfig}
                   labels={labels}
                   withSideLegend
                 />
@@ -1140,10 +1174,16 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                   stats={stats}
                   horizontal={template.styleConfig.chartType === 'horizontal-bar'}
                   accentColor={accent}
+                  styleConfig={template.styleConfig}
                   labels={labels}
                 />
               ) : (
-                <DonutDistributionSvg stats={stats} accentColor={accent} labels={labels} />
+                <DonutDistributionSvg
+                  stats={stats}
+                  accentColor={accent}
+                  styleConfig={template.styleConfig}
+                  labels={labels}
+                />
               )}
             </div>
           </div>
@@ -1164,6 +1204,7 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                 passThreshold={template.passThreshold}
                 accentColor={accent}
                 secondaryAccent={secondaryAccent}
+                styleConfig={template.styleConfig}
                 labels={labels}
                 withSideLegend
               />
@@ -1185,8 +1226,11 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {stats.bracketsBreakdown.map((b) => (
-                  <tr key={b.bracket.id}>
+                {stats.bracketsBreakdown.map((b, idx) => (
+                  <tr
+                    key={b.bracket.id}
+                    style={idx % 2 === 1 ? { backgroundColor: primaryRowTint } : undefined}
+                  >
                     <td className="border border-slate-300 px-2 py-1.5 font-mono font-bold" dir="ltr">
                       {b.bracket.label}
                     </td>
@@ -1197,7 +1241,19 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                       {b.percentage.toFixed(1)}%
                     </td>
                     <td className="border border-slate-300 px-2 py-1.5 text-start">
-                      {translateBracketAppreciation(b.bracket.appreciation, lang)}
+                      <span className="inline-flex items-center gap-1.5">
+                        <span
+                          className="inline-block h-2.5 w-2.5 rounded-xs shrink-0"
+                          style={{
+                            backgroundColor: resolveBracketDisplayColor(
+                              b.bracket,
+                              idx,
+                              template.styleConfig
+                            ),
+                          }}
+                        />
+                        <span>{translateBracketAppreciation(b.bracket.appreciation, lang)}</span>
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -1219,16 +1275,23 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                   passThreshold={template.passThreshold}
                   accentColor={accent}
                   secondaryAccent={secondaryAccent}
+                  styleConfig={template.styleConfig}
                   labels={labels}
                   withSideLegend
                 />
               ) : template.styleConfig.chartType === 'donut' ? (
-                <DonutDistributionSvg stats={stats} accentColor={accent} labels={labels} />
+                <DonutDistributionSvg
+                  stats={stats}
+                  accentColor={accent}
+                  styleConfig={template.styleConfig}
+                  labels={labels}
+                />
               ) : (
                 <BarChartSvg
                   stats={stats}
                   horizontal={template.styleConfig.chartType === 'horizontal-bar'}
                   accentColor={accent}
+                  styleConfig={template.styleConfig}
                   labels={labels}
                 />
               )}
@@ -1414,7 +1477,10 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
               </thead>
               <tbody>
                 {template.pedagogicalContent.remediationActions.map((row, idx) => (
-                  <tr key={idx}>
+                  <tr
+                    key={idx}
+                    style={idx % 2 === 1 ? { backgroundColor: primaryRowTint } : undefined}
+                  >
                     <td className="border border-slate-300 px-2 py-1.5 font-semibold">
                       {row.targetGroup}
                     </td>
@@ -1452,7 +1518,10 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                     lang
                   );
                   return (
-                    <tr key={st.id}>
+                    <tr
+                      key={st.id}
+                      style={idx % 2 === 1 ? { backgroundColor: primaryRowTint } : undefined}
+                    >
                       <td className="border border-slate-300 px-2 py-1 text-center font-mono tabular-nums">
                         {st.order || idx + 1}
                       </td>
@@ -1490,7 +1559,10 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
               </thead>
               <tbody>
                 {(sec.rows || [['—', '—']]).map((row, rIdx) => (
-                  <tr key={rIdx}>
+                  <tr
+                    key={rIdx}
+                    style={rIdx % 2 === 1 ? { backgroundColor: primaryRowTint } : undefined}
+                  >
                     {row.map((cell, cIdx) => (
                       <td key={cIdx} className="border border-slate-300 px-2 py-1.5">
                         {cell}
@@ -1908,8 +1980,8 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                 >
                   <thead>
                     <tr
-                      className="font-bold text-slate-900"
-                      style={{ height: '20px', backgroundColor: `${accent}12` }}
+                      className="font-bold"
+                      style={{ height: '20px', ...tableHeaderStyle }}
                     >
                       <th className="w-8 border border-slate-300 px-1 py-0 text-center">{labels.colOrder}</th>
                       <th className="border border-slate-300 px-1.5 py-0 text-start">{labels.colStudentName}</th>
@@ -1925,8 +1997,10 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                       return (
                         <tr
                           key={st.id}
-                          className="even:bg-slate-50/70"
-                          style={{ height: `${seqRowHeightPx}px` }}
+                          style={{
+                            height: `${seqRowHeightPx}px`,
+                            ...(idx % 2 === 1 ? { backgroundColor: primaryRowTint } : {}),
+                          }}
                         >
                           <td className="border border-slate-300 px-1 py-0 text-center font-mono tabular-nums text-slate-600">
                             {st.order || idx + 1}
@@ -1968,8 +2042,8 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                 >
                   <thead>
                     <tr
-                      className="font-bold text-slate-900"
-                      style={{ height: '20px', backgroundColor: `${secondaryAccent}12` }}
+                      className="font-bold"
+                      style={{ height: '20px', ...secondaryTableHeaderStyle }}
                     >
                       <th className="w-9 border border-slate-300 px-1 py-0 text-center">
                         {labels.colRank}
@@ -2022,13 +2096,21 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                             </tr>
                           )}
                           <tr
-                            className="even:bg-slate-50/70"
-                            style={{ height: `${meritRowHeightPx}px` }}
+                            style={{
+                              height: `${meritRowHeightPx}px`,
+                              ...(idx % 2 === 1 ? { backgroundColor: secondaryRowTint } : {}),
+                            }}
                           >
                             <td
-                              className={`border border-slate-300 px-1 py-0 text-center font-mono font-bold tabular-nums ${
-                                idx < 3 && !isAbsent ? 'bg-teal-50/70 text-teal-800' : 'text-slate-700'
-                              }`}
+                              className="border border-slate-300 px-1 py-0 text-center font-mono font-bold tabular-nums text-slate-700"
+                              style={
+                                idx < 3 && !isAbsent
+                                  ? {
+                                      backgroundColor: `${secondaryAccent}18`,
+                                      color: secondaryAccent,
+                                    }
+                                  : undefined
+                              }
                             >
                               {idx + 1}
                             </td>

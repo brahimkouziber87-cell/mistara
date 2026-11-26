@@ -25,7 +25,6 @@ import {
   DEFAULT_BRACKETS,
   EXAM_NUMBER_OPTIONS,
   MEMO_142_BRACKETS,
-  REPORT_COLOR_THEMES,
   REPORT_FONT_OPTIONS,
   REPORT_FRAME_OPTIONS,
   TEMPLATE_PRESETS,
@@ -56,6 +55,7 @@ import {
   buildSmartLocalPedagogicalDiagnosis,
   computeItemMatrixStats,
 } from '../utils/pedagogicalAnalytics';
+import { ColorThemeControlPanel } from './ColorThemeControlPanel';
 import { CompetencyBankPanel } from './CompetencyBankPanel';
 import { ItemAnalysisMatrixPanel } from './ItemAnalysisMatrixPanel';
 import { Memo142MathPanel } from './Memo142MathPanel';
@@ -82,7 +82,7 @@ interface CustomizeAndPedagogyStepProps {
   onOpenCardsPreview?: () => void;
 }
 
-type CustomizeTab = 'all' | 'metadata' | 'pedagogy' | 'layout';
+type CustomizeTab = 'all' | 'theme' | 'metadata' | 'pedagogy' | 'layout';
 
 export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> = ({
   metadata,
@@ -615,6 +615,7 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
     }));
   };
 
+  const showTheme = activeTab === 'all' || activeTab === 'theme' || activeTab === 'layout';
   const showMetadata = activeTab === 'all' || activeTab === 'metadata';
   const showPedagogy = activeTab === 'all' || activeTab === 'pedagogy';
   const showLayout = activeTab === 'all' || activeTab === 'layout';
@@ -645,6 +646,7 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
             {(
               [
                 { id: 'all', label: 'عرض شامل' },
+                { id: 'theme', label: 'سمة الألوان' },
                 { id: 'metadata', label: 'المعطيات' },
                 { id: 'pedagogy', label: 'التحليل والدعم' },
                 { id: 'layout', label: 'البنية والفئات' },
@@ -676,6 +678,16 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
           </button>
         </div>
       </div>
+
+      {showTheme && (
+        <ColorThemeControlPanel
+          template={template}
+          metadata={metadata}
+          stats={stats}
+          students={students}
+          onUpdateTemplate={onUpdateTemplate}
+        />
+      )}
 
       {(showMetadata || showPedagogy) && (
         <div className="space-y-4">
@@ -2000,105 +2012,12 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
                   </div>
                 </div>
 
-                {/* Curated Color Palettes + Custom Pickers */}
+                {/* Curated A4 Page Frame Selector */}
                 <div className="mt-5 border-t border-slate-100 pt-4">
-                  <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+                  <div className="mb-2.5 flex items-center justify-between gap-2">
                     <h3 className="text-xs font-bold text-slate-800">
-                      الألوان والهوية البصرية للتقرير
+                      إطار الورقة الخارجي للتقرير (A4 Frame)
                     </h3>
-                    <div className="flex items-center gap-3">
-                      <label className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600">
-                        <span>الرئيسي</span>
-                        <input
-                          type="color"
-                          aria-label="تخصيص اللون الرئيسي"
-                          value={template.styleConfig.accentColor}
-                          onChange={(e) =>
-                            onUpdateTemplate((prev) => ({
-                              ...prev,
-                              styleConfig: { ...prev.styleConfig, accentColor: e.target.value },
-                            }))
-                          }
-                          className="h-6 w-8 cursor-pointer rounded border border-slate-300 bg-white p-0.5"
-                        />
-                      </label>
-                      <label className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600">
-                        <span>الثانوي</span>
-                        <input
-                          type="color"
-                          aria-label="تخصيص اللون الثانوي"
-                          value={template.styleConfig.secondaryAccent || '#1e293b'}
-                          onChange={(e) =>
-                            onUpdateTemplate((prev) => ({
-                              ...prev,
-                              styleConfig: {
-                                ...prev.styleConfig,
-                                secondaryAccent: e.target.value,
-                              },
-                            }))
-                          }
-                          className="h-6 w-8 cursor-pointer rounded border border-slate-300 bg-white p-0.5"
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {REPORT_COLOR_THEMES.map((theme) => {
-                      const isActive =
-                        template.styleConfig.accentColor.toLowerCase() ===
-                          theme.accentColor.toLowerCase() &&
-                        (template.styleConfig.secondaryAccent || '#1e293b').toLowerCase() ===
-                          theme.secondaryAccent.toLowerCase();
-                      return (
-                        <button
-                          key={theme.id}
-                          type="button"
-                          onClick={() =>
-                            onUpdateTemplate((prev) => ({
-                              ...prev,
-                              styleConfig: {
-                                ...prev.styleConfig,
-                                accentColor: theme.accentColor,
-                                secondaryAccent: theme.secondaryAccent,
-                              },
-                            }))
-                          }
-                          className={`flex items-center gap-2.5 rounded-xl border p-2.5 text-right transition-all cursor-pointer ${
-                            isActive
-                              ? 'border-slate-900 bg-slate-50 ring-2 ring-slate-900/10'
-                              : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60'
-                          }`}
-                        >
-                          <div className="flex shrink-0 overflow-hidden rounded-lg border border-slate-200">
-                            <span
-                              className="h-8 w-4"
-                              style={{ backgroundColor: theme.accentColor }}
-                            />
-                            <span
-                              className="h-8 w-3"
-                              style={{ backgroundColor: theme.secondaryAccent }}
-                            />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="truncate text-xs font-bold text-slate-900">
-                              {theme.name}
-                            </div>
-                            <div className="truncate text-[10.5px] text-slate-500">
-                              {theme.subtitle}
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Curated A4 Page Frame Selector */}
-                  <div className="mt-5 border-t border-slate-100 pt-4">
-                    <div className="mb-2.5 flex items-center justify-between gap-2">
-                      <h3 className="text-xs font-bold text-slate-800">
-                        إطار الورقة الخارجي للتقرير (A4 Frame)
-                      </h3>
                       <span className="text-[11px] text-slate-500">
                         مضبوط داخل هوامش الطباعة لعدم الاقتطاع
                       </span>
@@ -2280,7 +2199,6 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
                       </div>
                     );
                   })()}
-                </div>
 
                 {/* Layout Style, Table Headers & Chart Type */}
                 <div className="mt-5 grid grid-cols-1 gap-3.5 border-t border-slate-100 pt-4 sm:grid-cols-3">
