@@ -1,10 +1,141 @@
 import {
   MassarMetadata,
   ReportFontFamily,
+  ReportFrameStyle,
+  ReportSectionType,
   ReportTemplateSchema,
   ScoreBracket,
   StudentRecord,
 } from '../types/report';
+
+export interface AddableReportSectionOption {
+  type: ReportSectionType;
+  label: string;
+  defaultTitle: string;
+  description: string;
+  defaultPage: 1 | 2;
+  allowMultiple?: boolean;
+  defaultBodyText?: string;
+  defaultColumns?: string[];
+  defaultRows?: string[][];
+}
+
+export const AVAILABLE_REPORT_SECTION_CATALOG: AddableReportSectionOption[] = [
+  {
+    type: 'metadata_grid',
+    label: 'بطاقة المعطيات الإدارية والتربوية',
+    defaultTitle: 'بطاقة بيانات الفرض المحروس',
+    description: 'جدول القسم، الأستاذ، تاريخ التمرير والتصحيح، المدة، المعامل، وعدد المسجلين',
+    defaultPage: 1,
+  },
+  {
+    type: 'exam_content_box',
+    label: 'محتوى الفرض والكفايات ومعايير المذكرة 142-08',
+    defaultTitle: '1. محتوى الفرض والأهداف والكفايات المقومة (مذكرة التقويم)',
+    description: 'المضامين، التوزيع المهاري (30% / 50% / 20%)، سلم التنقيط، وصيغة الدعم',
+    defaultPage: 1,
+  },
+  {
+    type: 'kpi_summary',
+    label: 'جدول المؤشرات الإحصائية العشرة',
+    defaultTitle: '2. النتائج والمؤشرات الإحصائية العامة وتوزيع النقط',
+    description: 'المسجلون، الحاضرون، الغائبون، الحاصلون على المعدل، المعدل، الوسيط، الانحراف، أعلى وأدنى نقطة',
+    defaultPage: 1,
+  },
+  {
+    type: 'brackets_and_donut_split',
+    label: 'بطاقات فئات التحكم + المبيان المدمج (أو منحنى غوص)',
+    defaultTitle: 'التمثيل المبياني للنسب المئوية وتوزيع فئات التحكم',
+    description: 'عرض مزدوج يجمع بطاقات الفئات الخمس مع المبيان الدائري أو منحنى غوص أو الأعمدة ومفتاح النسب',
+    defaultPage: 1,
+  },
+  {
+    type: 'gauss_curve_chart',
+    label: 'منحنى غوص للتوزيع الطبيعي لنقط القسم (المذكرة 142-08)',
+    defaultTitle: 'التوزيع الطبيعي لنقط القسم — منحنى غوص (Courbe de Gauss) وفق المذكرة 142-08',
+    description: 'مبيان التوزيع الطبيعي (Gauss) لنقط المتعلمين مع المدرج التكراري، المنحنى المرجعي (μ=12)، ونطاق التمركز [μ-σ, μ+σ]',
+    defaultPage: 1,
+  },
+  {
+    type: 'brackets_table',
+    label: 'جدول فئات النقط المستقل',
+    defaultTitle: 'توزيع التلاميذ حسب فئات النقط ومستويات التحكم',
+    description: 'جدول كلاسيكي مفصل يعرض كل فئة مع عدد التلاميذ والنسبة المئوية والتقدير التربوي',
+    defaultPage: 1,
+  },
+  {
+    type: 'chart_distribution',
+    label: 'مبيان التوزيع المستقل',
+    defaultTitle: 'التمثيل المبياني لتوزيع نتائج المتعلمين',
+    description: 'مبيان مستقل (منحنى غوص أو أعمدة عمودية أو أفقية أو دائري) لتوزيع التلاميذ حسب الفئات',
+    defaultPage: 1,
+  },
+  {
+    type: 'top_and_struggling',
+    label: 'تفييء المتعلمين (المتفوقون والمحتاجون للدعم)',
+    defaultTitle: 'تفييء المتعلمين: لائحة التميز ولائحة الدعم الاستدراكي الفردي',
+    description: 'جدولان متجاوران بأسماء ونقط التلاميذ المتفوقين والتلاميذ المتعثرين المستهدفين بالدعم',
+    defaultPage: 1,
+  },
+  {
+    type: 'pedagogical_diagnosis',
+    label: 'التشخيص التربوي والتوصيات البيداغوجية',
+    defaultTitle: '3. تشخيص المكتسبات والتعثرات والتوصيات التربوية المبرمجة',
+    description: 'قراءة تربوية، مواطن القوة، الصعوبات المرصودة، وتوصيات التدخل والدعم',
+    defaultPage: 1,
+  },
+  {
+    type: 'remediation_plan',
+    label: 'جدول خطة الدعم والمعالجة حسب مجموعات الحاجة',
+    defaultTitle: 'خطة الدعم والمعالجة التربوية المبرمجة حسب الفئات',
+    description: 'جدول إجرائي يربط كل فئة مستهدفة بالكفايات المعنية، أنشطة المعالجة، والغلاف الزمني',
+    defaultPage: 1,
+  },
+  {
+    type: 'dual_roster_merit',
+    label: 'كشف النقط المزدوج (التسلسلي + الاستحقاقي)',
+    defaultTitle: 'كشف نقط القسم حسب الترتيب التسلسلي والترتيب الاستحقاقي',
+    description: 'ملحق الصفحة الثانية الرسمي بلائحة القسم كاملة، الترتيب الاستحقاقي، وضعية الغياب، والمصادقة',
+    defaultPage: 2,
+  },
+  {
+    type: 'full_students_table',
+    label: 'اللائحة الاسمية الكاملة للتلاميذ (جدول موحد)',
+    defaultTitle: 'ملحق: اللائحة الاسمية الكاملة لنتائج المتعلمين والتقديرات',
+    description: 'جدول موحد يعرض الرقم، رمز مسار، الاسم الكامل، النقطة، والتقدير التربوي',
+    defaultPage: 2,
+  },
+  {
+    type: 'custom_text',
+    label: 'فقرة توصيات تربوية / ملاحظات خاصة (مخصصة)',
+    defaultTitle: 'توصيات تربوية وملاحظات تكميلية حول تتبع المتعلمين',
+    description: 'مربع نصي حر لإضافة توصيات خاصة بالمجلس التعليمي أو ملاحظات المفتش أو الأستاذ',
+    defaultPage: 1,
+    allowMultiple: true,
+    defaultBodyText:
+      '• تعزيز التتبع الفردي للمتعلمين الحاصلين على نقطة دون عتبة التحكم (10/20) عبر أنشطة استدراكية موجهة.\n• استثمار التعلم بالقرين وتكليف المتعلمين المتفوقين بمساندة زملائهم داخل مجموعات العمل الصغرى.',
+  },
+  {
+    type: 'custom_table',
+    label: 'جدول مخصص (تتبع / أنشطة / مؤشرات إضافية)',
+    defaultTitle: 'جدول تتبع الأنشطة التربوية ومجموعات الدعم',
+    description: 'جدول حر قابل لتعديل الأعمدة والصفوف لإضافة أي بيانات تربوية خاصة بالقسم',
+    defaultPage: 1,
+    allowMultiple: true,
+    defaultColumns: ['المجموعة / المحور', 'الإجراء التربوي المبرمج', 'مؤشر التحقق والتتبع'],
+    defaultRows: [
+      ['مجموعة الدعم الأساس (< 08/20)', 'بطاقات تصحيح ذاتي + تمارين تطبيقية مباشرة', 'تحسن النقطة في روائز التتبع القصيرة'],
+      ['مجموعة التثبيت (08 إلى 12)', 'تدريب على صياغة البرهان الرياضي والتعليل', 'جودة التحرير في دفتر البحث والواجبات'],
+    ],
+  },
+  {
+    type: 'signatures',
+    label: 'إطارات التوقيعات والتأشيرات الرسمية',
+    defaultTitle: 'التوقيعات والتأشيرات الرسمية',
+    description: 'خانات توقيع أستاذ المادة، المفتش التربوي، ورئيس المؤسسة',
+    defaultPage: 1,
+  },
+];
 
 export interface ReportFontOption {
   id: ReportFontFamily;
@@ -55,6 +186,64 @@ export const REPORT_FONT_OPTIONS: ReportFontOption[] = [
     description: 'حروف ناعمة ومتباعدة بتوازن ممتاز مع الأقسام المكتظة',
     cssClass: 'font-tajawal',
     wordFontFamily: "'Tajawal', 'Cairo', 'Segoe UI', sans-serif",
+  },
+  {
+    id: 'noto-naskh-arabic',
+    name: 'النسخ الرسمي (Noto Naskh)',
+    tag: 'معيار الوثائق الرسمية',
+    description: 'وضوح نسخي أصيل يجمع بين الرصانة الإدارية وسهولة القراءة في الجداول',
+    cssClass: 'font-naskh-arabic',
+    wordFontFamily: "'Noto Naskh Arabic', 'Traditional Arabic', serif",
+  },
+  {
+    id: 'almarai',
+    name: 'خط المراعي (Almarai)',
+    tag: 'عصري مشرق',
+    description: 'خط هندسي متناسق بعناوين حادة ومقروئية عالية عند الطباعة على A4',
+    cssClass: 'font-almarai',
+    wordFontFamily: "'Almarai', 'Cairo', 'Segoe UI', sans-serif",
+  },
+  {
+    id: 'readex-pro',
+    name: 'ريدكس برو (Readex Pro)',
+    tag: 'تحريري متقن',
+    description: 'تصميم حديث مضبوط التباعد مثالي للتقارير التحليلية والأرقام الإحصائية',
+    cssClass: 'font-readex',
+    wordFontFamily: "'Readex Pro', 'IBM Plex Sans Arabic', sans-serif",
+  },
+];
+
+export interface ReportFrameOption {
+  id: ReportFrameStyle;
+  name: string;
+  description: string;
+}
+
+export const REPORT_FRAME_OPTIONS: ReportFrameOption[] = [
+  {
+    id: 'double-inset',
+    name: 'إطار وزاري مزدوج',
+    description: 'إطار داخلي مزدوج دقيق مع شريط لوني متدرج في الأعلى',
+  },
+  {
+    id: 'royal-corners',
+    name: 'إطار زوايا رسمي فاخر',
+    description: 'زوايا هندسية بارزة مع خط داخلي متناسق بلمسة رسمية',
+  },
+  {
+    id: 'classic-double',
+    name: 'إطار كلاسيكي مزدوج',
+    description: 'الإطار الإداري التقليدي بخط مزدوج متين داخل الهوامش',
+  },
+  {
+    id: 'top-bottom-bands',
+    name: 'شريط علوي وسفلي',
+    description: 'تأطير عصري هادئ بشريطين متدرجين دون حدود جانبية',
+  },
+  {
+    id: 'none',
+    name: 'بدون إطار خارجي',
+    description: 'صفحة مفتوحة بسيطة بدون إطار محيط بالورقة',
   },
 ];
 
@@ -117,6 +306,22 @@ export const REPORT_COLOR_THEMES: ReportColorTheme[] = [
     accentColor: '#312e81',
     secondaryAccent: '#0d9488',
     swatchBg: '#eef2ff',
+  },
+  {
+    id: 'royal-emerald-gold',
+    name: 'زمردي وذهبي ملكي',
+    subtitle: 'فخامة رسمية مستوحاة من الهوية المغربية',
+    accentColor: '#065f46',
+    secondaryAccent: '#b45309',
+    swatchBg: '#ecfdf5',
+  },
+  {
+    id: 'sapphire-gold',
+    name: 'ياقوتي وأوكسيد ذهبي',
+    subtitle: 'تباين تنفيذي رفيع للوثائق الرسمية',
+    accentColor: '#172554',
+    secondaryAccent: '#a16207',
+    swatchBg: '#eff6ff',
   },
   {
     id: 'olive-heritage',
@@ -286,7 +491,9 @@ export const DEFAULT_BRACKETS: ScoreBracket[] = [
 export const TEMPLATE_PRESETS: ReportTemplateSchema[] = [
   {
     id: 'preset-memo-142-dual',
-    name: 'نموذجك المرفوع: بطاقة تقرير وتتبع الفرض + كشف النقط (مذكرة التقويم)',
+    name: 'القالب الرسمي المزدوج: تقرير وتتبع الفرض + كشف النقط (مذكرة التقويم 142-08)',
+    focusBadge: 'تركيز شامل: المذكرة 142-08 + كشف النقط المزدوج',
+    useCaseTag: 'صفحتان A4 · الدفتر التربوي والمفتشية',
     sourceType: 'analyzed-pdf',
     sourceFileName: 'نموذج التقرير المرفوع (صفحتان)',
     hasTwoPages: true,
@@ -312,10 +519,11 @@ export const TEMPLATE_PRESETS: ReportTemplateSchema[] = [
       accentColor: '#1e3a8a',
       secondaryAccent: '#0f766e',
       borderStyle: 'section-banners',
+      frameStyle: 'double-inset',
       fontFamily: 'cairo',
-      showOuterFrame: false,
+      showOuterFrame: true,
       tableHeaderBg: 'solid-accent',
-      chartType: 'donut',
+      chartType: 'gauss',
     },
     passThreshold: 10,
     excellenceThreshold: 16,
@@ -415,9 +623,296 @@ export const TEMPLATE_PRESETS: ReportTemplateSchema[] = [
     },
   },
   {
-    id: 'preset-official-classic',
-    name: 'النموذج الإداري الكلاسيكي (صفحة واحدة شاملة)',
+    id: 'preset-individual-focus',
+    name: 'قالب التحليل الفردي وتفييء المتعلمين (تركيز على التتبع الفردي)',
+    focusBadge: 'تركيز فردي: لوائح المتفوقين والمتعثرين والترتيب الاستحقاقي',
+    useCaseTag: 'صفحتان A4 + بطاقات الدعم الفردية',
     sourceType: 'preset',
+    hasTwoPages: true,
+    analysisSummary:
+      'قالب مصمم خصيصاً لتشخيص وضعية كل متعلم وتفييء القسم إلى مجموعات حاجة واضحة بالأسماء والنقط: يبرز في الصفحة الأولى جدول تفييء المتعلمين (لائحة التميز ولائحة الدعم الفردي العاجل)، المؤشرات الإحصائية، توزيع الفئات الخمس، وتشخيص الصعوبات الفردية، مع كشف النقط المزدوج في الصفحة الثانية وإرفاق بطاقات الدعم الفردية.',
+    detectedNotes: [
+      'يُبرز جدول تفييء المتعلمين بالأسماء والنقط في قلب الصفحة الأولى لتسهيل قراءة الحالات الفردية.',
+      'يُفعّل تلقائياً إرفاق بطاقات الدعم الفردية للمتعثرين عند الطباعة الكاملة.',
+      'يرفق كشف النقط التسلسلي والترتيب الاستحقاقي في الصفحة الثانية لتوثيق مرتبة كل تلميذ.',
+    ],
+    headerConfig: {
+      layout: 'three-column-moroccan',
+      countryLine: 'المملكة المغربية',
+      ministryLine: 'وزارة التربية الوطنية والتعليم الأولي والتكوين المهني والتأهيل',
+      includeFrenchHeader: false,
+      reportTitle: 'تقرير التحليل الفردي وتفييء المتعلمين حسب نتائج الفرض',
+      reportSubtitle: 'تشخيص فردي لمستويات التحكم وتصنيف مجموعات الدعم والتميز وفق مذكرة التقويم 142-08',
+      appendixTitle: 'كشف النقط الفردي المزدوج (التسلسلي والاستحقاقي) ووضعية الغياب',
+    },
+    styleConfig: {
+      accentColor: '#312e81',
+      secondaryAccent: '#0d9488',
+      borderStyle: 'section-banners',
+      frameStyle: 'double-inset',
+      fontFamily: 'ibm-plex-sans-arabic',
+      showOuterFrame: true,
+      tableHeaderBg: 'solid-accent',
+      chartType: 'horizontal-bar',
+    },
+    passThreshold: 10,
+    excellenceThreshold: 15,
+    brackets: MEMO_142_BRACKETS,
+    sections: [
+      { id: 'ind-meta', type: 'metadata_grid', title: 'بطاقة بيانات الفرض والقسم', enabled: true, page: 1 },
+      {
+        id: 'ind-kpi',
+        type: 'kpi_summary',
+        title: '1. المؤشرات الإحصائية العامة ومستويات الأداء الفردي',
+        enabled: true,
+        page: 1,
+      },
+      {
+        id: 'ind-top-low',
+        type: 'top_and_struggling',
+        title: '2. التفييء الاسمي للمتعلمين: مجموعة التميز ومجموعة الدعم الفردي الاستدراكي',
+        enabled: true,
+        page: 1,
+      },
+      {
+        id: 'ind-split',
+        type: 'brackets_and_donut_split',
+        title: '3. توزيع المتعلمين حسب فئات التحكم الخمس (مذكرة التقويم 142-08)',
+        enabled: true,
+        page: 1,
+      },
+      {
+        id: 'ind-diag',
+        type: 'pedagogical_diagnosis',
+        title: '4. تشخيص التعثرات الفردية وتوصيات التتبع والمواكبة بالقرين',
+        enabled: true,
+        page: 1,
+      },
+      { id: 'ind-sign', type: 'signatures', title: 'التوقيعات والتأشيرات الرسمية', enabled: true, page: 1 },
+      {
+        id: 'ind-roster',
+        type: 'dual_roster_merit',
+        title: 'كشف النقط الفردي المزدوج (التسلسلي والاستحقاقي) وتصنيف التقديرات',
+        enabled: true,
+        page: 2,
+      },
+    ],
+    signatures: [
+      {
+        id: 'sig-1',
+        label: 'توقيع أستاذ(ة) المادة:',
+        sublabel: 'المشرف(ة) على التشخيص والتتبع الفردي',
+        page2Sublabel: 'يشهد بصحة النقط الفردية ومطابقتها لأوراق التحرير',
+      },
+      {
+        id: 'sig-2',
+        label: 'تأشيرة وملاحظات المفتش(ة) التربوي(ة):',
+        sublabel: 'التأطير التربوي وتتبع أثر الدعم الفردي',
+        page2Sublabel: 'ملاحظات حول تفييء المتعلمين ونجاعة البطاقات العلاجية',
+        page2Footer: 'التأشيرة والخاتم: .......................',
+      },
+      {
+        id: 'sig-3',
+        label: 'تأشيرة السيد(ة) رئيس(ة) المؤسسة:',
+        sublabel: 'الإدارة التربوية / الحراسة العامة',
+        page2Sublabel: 'اطلع عليه وأدرج بملف تتبع نتائج المتعلمين',
+      },
+    ],
+    pedagogicalContent: {
+      generalObservation:
+        'يُبرز التحليل الفردي للنتائج تمايزاً واضحاً في وتيرة الاستيعاب بين المتعلمين؛ حيث أظهرت مجموعة التميز تحكماً منهجياً عالياً، في حين تحتاج الفئة المتعثرة (< 10/20) إلى مواكبة فردية مشخصة عبر بطاقات الدعم والتعلم بالقرين.',
+      strengths: [
+        'تحكم فردي متميز لدى الفئة المتفوقة في صياغة البراهين الرياضية واستثمار التعاريف بدقة.',
+        'تفاعل إيجابي للفئة المتوسطة مع أسئلة التطبيق المباشر والحساب الجبري.',
+      ],
+      weaknesses: [
+        'تفاوت فردي في القدرة على ترجمة المعطيات اللفظية والهندسية إلى علاقات رياضية.',
+        'حاجة الفئة المتعثرة إلى تقوية المكتسبات القبلية الأساس وضبط القواعد الإشارية والحسابية.',
+      ],
+      programmedRemediationBullets: [
+        'تسليم بطاقة دعم فردية مشخصة لكل تلميذ حاصل على أقل من 10/20 مرفقة بواجب استدراكي موجه.',
+        'توزيع القسم خلال حصة الدعم إلى مجموعات حاجة صغرى بإشراف تلاميذ مجموعة التميز (التعلم بالقرين).',
+        'إجراء رائز تتبع قصير (15 دقيقة) لقياس أثر الدعم الفردي وتحيين فئات التحكم.',
+      ],
+      remediationNotes:
+        'يتم استثمار لائحة التفييء أعلاه في توجيه الأسئلة الصفية اليومية ومراقبة دفاتر التمارين الخاصة بالتلاميذ المدرجين في لائحة الدعم.',
+      remediationActions: [
+        {
+          targetGroup: 'مجموعة الدعم المكثف (< 05/20)',
+          competencies: 'استدراك المكتسبات القبلية الأساس والقواعد الحسابية الأولية',
+          activity: 'بطاقات دعم فردية مبسطة + مواكبة مباشرة من الأستاذ أثناء حصة التصحيح',
+          timeframe: 'حصة التصحيح + تتبع أسبوعي فردي',
+        },
+        {
+          targetGroup: 'مجموعة الدعم الوقائي (05 إلى 9.99)',
+          competencies: 'تثبيت منهجية تطبيق الخاصيات وتفادي الأخطاء الشائعة',
+          activity: 'تمارين علاجية موجهة + إشراك في ثنائيات التعلم بالقرين مع المتفوقين',
+          timeframe: 'الأسبوعان المواليان للتصحيح',
+        },
+        {
+          targetGroup: 'مجموعة التميز والإثراء (≥ 15/20)',
+          competencies: 'تعميق الاستدلال الرياضي وحل المسائل المركبة',
+          activity: 'تمارين إثرائية وتنشيط ورشات مساندة الزملاء داخل القسم',
+          timeframe: 'مستمر طيلة الدورة',
+        },
+      ],
+    },
+    remediationCardsConfig: {
+      enabledInFullReport: true,
+      targetFilter: 'struggling',
+      includeAbsent: false,
+      cardsPerSheet: 4,
+      showParentSignature: true,
+      showCutGuides: true,
+      showPostSupportEval: true,
+      defaultExerciseTask: '',
+      sessionDate: '',
+    },
+  },
+  {
+    id: 'preset-pedagogical-recommendations',
+    name: 'قالب التوصيات التربوية وخطة الدعم والمعالجة (تركيز بيداغوجي)',
+    focusBadge: 'تركيز بيداغوجي: التشخيص والتوصيات وجدول خطة الدعم',
+    useCaseTag: 'صفحة واحدة مركزة · التفتيش والمجالس التعليمية',
+    sourceType: 'preset',
+    hasTwoPages: false,
+    analysisSummary:
+      'قالب بيداغوجي يركز على الجوانب التربوية والديداكتيكية المطلوبة في زيارات التأطير والمجالس التعليمية: يبرز محتوى الفرض والكفايات المقومة وفق المذكرة 142-08، خلاصة المؤشرات، التشخيص التربوي المعمق (مواطن القوة، الصعوبات، التوصيات المبرمجة)، جدول خطة الدعم والمعالجة المفصل حسب مجموعات الحاجة والغلاف الزمني، وتفييء المتفوقين والمتعثرين في صفحة واحدة منسقة.',
+    detectedNotes: [
+      'يجمع بين مربع التشخيص التربوي والتوصيات المبرمجة وبين جدول خطة الدعم الإجرائية في نفس الصفحة.',
+      'يبرز مدى مطابقة الفرض للتوزيع المهاري (30% استرداد · 50% تطبيق · 20% وضعيات مركبة).',
+      'مثالي لتوثيق حصة التصحيح والدعم وتقديمه للسيد(ة) المفتش(ة) التربوي(ة).',
+    ],
+    headerConfig: {
+      layout: 'three-column-moroccan',
+      countryLine: 'المملكة المغربية',
+      ministryLine: 'وزارة التربية الوطنية والتعليم الأولي والتكوين المهني والتأهيل',
+      includeFrenchHeader: false,
+      reportTitle: 'بطاقة التشخيص التربوي والتوصيات وخطة الدعم البيداغوجي',
+      reportSubtitle: 'تحليل ديداكتيكي لنتائج الفرض المحروس وبرمجة أنشطة المعالجة وفق المذكرة 142-08',
+    },
+    styleConfig: {
+      accentColor: '#0f766e',
+      secondaryAccent: '#1e3a8a',
+      borderStyle: 'section-banners',
+      frameStyle: 'royal-corners',
+      fontFamily: 'cairo',
+      showOuterFrame: true,
+      tableHeaderBg: 'solid-accent',
+      chartType: 'donut',
+    },
+    passThreshold: 10,
+    excellenceThreshold: 16,
+    brackets: MEMO_142_BRACKETS,
+    sections: [
+      { id: 'ped-meta', type: 'metadata_grid', title: 'بطاقة المعطيات التربوية للفرض', enabled: true, page: 1 },
+      {
+        id: 'ped-content',
+        type: 'exam_content_box',
+        title: '1. المضامين والكفايات المقومة ومعايير مذكرة التقويم 142-08',
+        enabled: true,
+        page: 1,
+      },
+      {
+        id: 'ped-kpi',
+        type: 'kpi_summary',
+        title: '2. خلاصة المؤشرات الإحصائية ومعدلات التحكم',
+        enabled: true,
+        page: 1,
+      },
+      {
+        id: 'ped-diag',
+        type: 'pedagogical_diagnosis',
+        title: '3. التشخيص الديداكتيكي للمكتسبات والتعثرات والتوصيات التربوية',
+        enabled: true,
+        page: 1,
+      },
+      {
+        id: 'ped-plan',
+        type: 'remediation_plan',
+        title: '4. البرنامج الإجرائي للدعم والمعالجة التربوية حسب مجموعات الحاجة',
+        enabled: true,
+        page: 1,
+      },
+      {
+        id: 'ped-top-low',
+        type: 'top_and_struggling',
+        title: '5. تفييء المتعلمين المستهدفين بالدعم الاستدراكي والتثبيت',
+        enabled: true,
+        page: 1,
+      },
+      { id: 'ped-sign', type: 'signatures', title: 'التوقيعات والتأشيرات التربوية', enabled: true, page: 1 },
+    ],
+    signatures: [
+      {
+        id: 'sig-1',
+        label: 'توقيع أستاذ(ة) المادة:',
+        sublabel: 'معد(ة) التشخيص التربوي وخطة الدعم',
+      },
+      {
+        id: 'sig-2',
+        label: 'تأشيرة وتوصيات المفتش(ة) التربوي(ة):',
+        sublabel: 'التأطير والمواكبة التربوية',
+      },
+      {
+        id: 'sig-3',
+        label: 'تأشيرة السيد(ة) رئيس(ة) المؤسسة:',
+        sublabel: 'المدير(ة) / الناظر(ة)',
+      },
+    ],
+    pedagogicalContent: {
+      generalObservation:
+        'بناءً على تحليل أوراق التحرير وفق شبكة تصحيح معيارية، يتبين أن أغلبية المتعلمين تملكوا المفاهيم الأساسية للوحدة، غير أن الانتقال من التطبيق المباشر إلى الاستدلال المركب يستوجب تدخلاً ديداكتيكياً ممركزاً خلال حصة التصحيح والدعم.',
+      strengths: [
+        'استيعاب سليم للتعاريف والمفاهيم الرياضية الأساسية وتوظيفها في أسئلة الاسترداد (30%).',
+        'تحسن ملحوظ في تنظيم خطوات الحل واحترام الترميز الرياضي السليم لدى الفئة المتحكمة.',
+      ],
+      weaknesses: [
+        'تعثر في تفكيك الأسئلة المركبة وربط المعطيات القبلية بالنتيجة المطلوبة (مستوى التوليف 20%).',
+        'أخطاء منهجية في التبرير الرياضي والاكتفاء أحياناً بإعطاء النتيجة دون خطوات استدلالية.',
+      ],
+      programmedRemediationBullets: [
+        'استثمار حصة التصحيح في تفكيك الأخطاء النمطية جماعياً على السبورة وبناء شبكة التبرير السليم.',
+        'اعتماد بيداغوجيا الخطأ والعمل بالمجموعات الصغرى لمعالجة الثغرات حسب فئات التحكم.',
+        'تخصيص 10 دقائق في مستهل الحصص الموالية لأنشطة تذكيرية قصيرة (تقويم تكويني فوري).',
+      ],
+      remediationNotes:
+        'توصية تربوية: الحرص على تنويع صيغ الأسئلة في الواجبات المنزلية لربط الحساب الجبري بالتأويل الهندسي والبياني، مع تتبع أثر المعالجة في الفرض المحروس الموالي.',
+      remediationActions: [
+        {
+          targetGroup: 'فئة التعثر الحاد (< 05/20)',
+          competencies: 'بناء التعلمات الأساس واستدراك القواعد الجبرية والهندسية الأولية',
+          activity: 'أنشطة علاجية مبسطة خطوة بخطوة + بطاقات تصحيح ذاتي ومواكبة فردية',
+          timeframe: 'حصة التصحيح والدعم + تتبع أسبوعي',
+        },
+        {
+          targetGroup: 'فئة دون المتوسط (05 إلى 9.99)',
+          competencies: 'تثبيت التطبيق المباشر للخاصيات وتجاوز الأخطاء الحسابية المتكررة',
+          activity: 'سلسلة تمارين تطبيقية متدرجة + عمل ثنائي بتأطير من التلاميذ المتفوقين',
+          timeframe: 'الأسبوعان المواليان للتصحيح',
+        },
+        {
+          targetGroup: 'فئة التحكم المتوسط والجزئي (10 إلى 13.99)',
+          competencies: 'تجويد منهجية البرهان والتحرير الرياضي الدقيق',
+          activity: 'تمارين موجهة تركز على صياغة التعليل واستثمار المعطيات المركبة',
+          timeframe: 'أثناء الحصص التعليمية الاعتيادية',
+        },
+        {
+          targetGroup: 'فئة التميز والتحكم المتقدم (≥ 14/20)',
+          competencies: 'تطوير مهارات التوليف وحل الوضعيات غير المألوفة',
+          activity: 'مسائل إثرائية وتكليف بتنشيط مجموعات الدعم بالقرين داخل الفصل',
+          timeframe: 'مستمر طيلة الدورة الدراسية',
+        },
+      ],
+    },
+  },
+  {
+    id: 'preset-official-classic',
+    name: 'القالب الإداري الكلاسيكي الشامل (صفحة واحدة موحدة)',
+    focusBadge: 'تركيز كلاسيكي: 6 فئات + مبيان أعمدة + تفييء وخطة دعم',
+    useCaseTag: 'صفحة واحدة A4 · الأرشيف الإداري',
+    sourceType: 'preset',
+    hasTwoPages: false,
     analysisSummary:
       'تقرير تربوي إداري متكامل بالترويسة المغربية الرسمية الثلاثية، يتضمن بطاقة المعطيات، المؤشرات الإحصائية، توزيع النقط حسب ست فئات، مبيان أعمدة، تشخيص التعثرات، وخطة الدعم والمعالجة.',
     headerConfig: {
@@ -429,9 +924,11 @@ export const TEMPLATE_PRESETS: ReportTemplateSchema[] = [
       reportSubtitle: 'دراسة إحصائية وتشخيص تربوي لنتائج المتعلمين وخطة الدعم والمعالجة',
     },
     styleConfig: {
-      accentColor: '#0f766e',
+      accentColor: '#065f46',
+      secondaryAccent: '#b45309',
       borderStyle: 'official-double',
-      fontFamily: 'amiri',
+      frameStyle: 'royal-corners',
+      fontFamily: 'noto-naskh-arabic',
       showOuterFrame: true,
       tableHeaderBg: 'tinted',
       chartType: 'bar',
@@ -440,15 +937,15 @@ export const TEMPLATE_PRESETS: ReportTemplateSchema[] = [
     excellenceThreshold: 16,
     brackets: DEFAULT_BRACKETS,
     sections: [
-      { id: 'sec-meta', type: 'metadata_grid', title: 'أولا: المعطيات الإدارية والتربوية', enabled: true },
-      { id: 'sec-kpi', type: 'kpi_summary', title: 'ثانيا: المؤشرات الإحصائية العامة للفرض', enabled: true },
-      { id: 'sec-brackets', type: 'brackets_table', title: 'ثالثا: توزيع التلاميذ حسب فئات النقط', enabled: true },
-      { id: 'sec-chart', type: 'chart_distribution', title: 'رابعا: التمثيل المبياني لتوزيع النتائج', enabled: true },
-      { id: 'sec-top-low', type: 'top_and_struggling', title: 'خامسا: تفييء المتعلمين (المتفوقون والمحتاجون للدعم)', enabled: true },
-      { id: 'sec-diag', type: 'pedagogical_diagnosis', title: 'سادسا: قراءة تربوية وتشخيص التعثرات المرصودة', enabled: true },
-      { id: 'sec-remed', type: 'remediation_plan', title: 'سابعا: خطة الدعم والمعالجة المقترحة', enabled: true },
-      { id: 'sec-list', type: 'full_students_table', title: 'ملحق: اللائحة الاسمية لنتائج التلاميذ', enabled: false },
-      { id: 'sec-sign', type: 'signatures', title: 'التوقيعات والمصادقة', enabled: true },
+      { id: 'sec-meta', type: 'metadata_grid', title: 'أولا: المعطيات الإدارية والتربوية', enabled: true, page: 1 },
+      { id: 'sec-kpi', type: 'kpi_summary', title: 'ثانيا: المؤشرات الإحصائية العامة للفرض', enabled: true, page: 1 },
+      { id: 'sec-brackets', type: 'brackets_table', title: 'ثالثا: توزيع التلاميذ حسب فئات النقط', enabled: true, page: 1 },
+      { id: 'sec-chart', type: 'chart_distribution', title: 'رابعا: التمثيل المبياني لتوزيع النتائج', enabled: true, page: 1 },
+      { id: 'sec-top-low', type: 'top_and_struggling', title: 'خامسا: تفييء المتعلمين (المتفوقون والمحتاجون للدعم)', enabled: true, page: 1 },
+      { id: 'sec-diag', type: 'pedagogical_diagnosis', title: 'سادسا: قراءة تربوية وتشخيص التعثرات المرصودة', enabled: true, page: 1 },
+      { id: 'sec-remed', type: 'remediation_plan', title: 'سابعا: خطة الدعم والمعالجة المقترحة', enabled: true, page: 1 },
+      { id: 'sec-list', type: 'full_students_table', title: 'ملحق: اللائحة الاسمية لنتائج التلاميذ', enabled: false, page: 2 },
+      { id: 'sec-sign', type: 'signatures', title: 'التوقيعات والمصادقة', enabled: true, page: 1 },
     ],
     signatures: [
       { id: 'sig-1', label: 'توقيع الأستاذ(ة)', sublabel: 'المشرف على المادة' },
@@ -490,6 +987,92 @@ export const TEMPLATE_PRESETS: ReportTemplateSchema[] = [
           timeframe: 'طيلة الدورة',
         },
       ],
+    },
+  },
+  {
+    id: 'preset-statistical-executive',
+    name: 'القالب الإحصائي التنفيذي المختصر (لمجالس الأقسام والإدارة)',
+    focusBadge: 'تركيز إحصائي: قراءة رقمية ومبيانية سريعة لمجالس الأقسام',
+    useCaseTag: 'صفحة واحدة A4 · مجالس الأقسام والتقارير التركيبية',
+    sourceType: 'preset',
+    hasTwoPages: false,
+    analysisSummary:
+      'قالب تنفيذي مختصر وواضح مصمم للعرض السريع في مجالس الأقسام والتقارير الإدارية الدورية: يركز على بطاقة المعطيات، المؤشرات الإحصائية العشرة (المعدل، الوسيط، الانحراف المعياري، نسبة النجاح)، التمثيل المبياني الدائري لفئات التحكم، تفييء المتفوقين والمتعثرين، وخلاصة تركيبية مركزة.',
+    detectedNotes: [
+      'إخراج بصري مهوّى وعالي المقروئية يركز على الأرقام والمبيانات.',
+      'يبرز مؤشرات التجانس ونسبة النجاح وتوزيع التلاميذ بنظرة واحدة.',
+    ],
+    headerConfig: {
+      layout: 'three-column-moroccan',
+      countryLine: 'المملكة المغربية',
+      ministryLine: 'وزارة التربية الوطنية والتعليم الأولي والتكوين المهني والتأهيل',
+      includeFrenchHeader: false,
+      reportTitle: 'الحصيلة الإحصائية والتربوية الموجزة لنتائج الفرض المحروس',
+      reportSubtitle: 'بطاقة تركيبية لمؤشرات التحصيل وتوزيع فئات التحكم الخاصة بمجالس الأقسام',
+    },
+    styleConfig: {
+      accentColor: '#1e293b',
+      secondaryAccent: '#0284c7',
+      borderStyle: 'classic-grid',
+      frameStyle: 'classic-double',
+      fontFamily: 'readex-pro',
+      showOuterFrame: true,
+      tableHeaderBg: 'solid-accent',
+      chartType: 'gauss',
+    },
+    passThreshold: 10,
+    excellenceThreshold: 16,
+    brackets: MEMO_142_BRACKETS,
+    sections: [
+      { id: 'exec-meta', type: 'metadata_grid', title: 'بطاقة المعطيات الإدارية للقسم والفرض', enabled: true, page: 1 },
+      {
+        id: 'exec-kpi',
+        type: 'kpi_summary',
+        title: '1. الحصيلة الإحصائية العامة ومؤشرات التشتت والتحصيل',
+        enabled: true,
+        page: 1,
+      },
+      {
+        id: 'exec-split',
+        type: 'brackets_and_donut_split',
+        title: '2. التوزيع المبياني والنسب المئوية لفئات التحكم',
+        enabled: true,
+        page: 1,
+      },
+      {
+        id: 'exec-top-low',
+        type: 'top_and_struggling',
+        title: '3. لائحة التلاميذ المتفوقين والتلاميذ المقترحين للدعم',
+        enabled: true,
+        page: 1,
+      },
+      {
+        id: 'exec-diag',
+        type: 'pedagogical_diagnosis',
+        title: '4. الخلاصة التركيبية وقرارات الدعم لمجلس القسم',
+        enabled: true,
+        page: 1,
+      },
+      { id: 'exec-sign', type: 'signatures', title: 'التوقيعات والمصادقة الإدارية', enabled: true, page: 1 },
+    ],
+    signatures: [
+      { id: 'sig-1', label: 'توقيع أستاذ(ة) المادة:', sublabel: 'معد(ة) الحصيلة الإحصائية' },
+      { id: 'sig-2', label: 'تأشيرة السيد(ة) رئيس(ة) المؤسسة:', sublabel: 'رئيس(ة) مجلس القسم' },
+    ],
+    pedagogicalContent: {
+      generalObservation:
+        'تعكس المؤشرات الإحصائية للفرض مستوى تحصيل متوازن مع استقرار في نسبة الحاصلين على المعدل، ويُقترح توجيه الفئة غير المتحكمة إلى حصص الدعم المؤسساتي والمواكبة الفردية.',
+      strengths: [
+        'بلوغ نسبة هامة من المتعلمين عتبة التحكم الأساسي (≥ 10/20) مع تسجيل نقط متميزة في صدارة القسم.',
+      ],
+      weaknesses: [
+        'تمركز تعثرات الفئة المتأخرة في المهارات الاستدلالية والتركيبية التي تتطلب دعماً استدراكياً.',
+      ],
+      programmedRemediationBullets: [
+        'برمجة حصة دعم وتثبيت مركزة لفائدة التلاميذ الحاصلين على أقل من المعدل.',
+        'تتبع تطور نتائج الفئة المتعثرة خلال الفروض المحروسة المقبلة.',
+      ],
+      remediationActions: [],
     },
   },
 ];

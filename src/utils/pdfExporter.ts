@@ -185,7 +185,7 @@ async function buildEmbeddedFontCss(): Promise<string> {
 
   return fontFaceRules
     .map((ruleText) =>
-      ruleText.replace(urlRegex, (fullMatch, quote, rawUrl) => {
+      ruleText.replace(urlRegex, (fullMatch, _quote, rawUrl) => {
         const replacement = urlToDataMap.get(rawUrl);
         return replacement ? `url("${replacement}")` : fullMatch;
       })
@@ -343,3 +343,90 @@ export async function exportReportContainerToPdf({
     URL.revokeObjectURL(blobUrl);
   }, 10000);
 }
+
+export async function exportElementToPng({
+  container,
+  fileName,
+}: ExportPdfOptions): Promise<void> {
+  await nextFrame();
+
+  if (typeof document !== 'undefined' && 'fonts' in document) {
+    await Promise.race([
+      document.fonts.ready,
+      new Promise<void>((resolve) => window.setTimeout(resolve, 1200)),
+    ]);
+  }
+
+  const target =
+    container.querySelector<HTMLElement>('.report-sheet') || container;
+
+  const fontCssText = await getEmbeddedFontCss();
+
+  const prevTransform = container.style.transform;
+  const prevTransition = container.style.transition;
+  container.style.transition = 'none';
+  container.style.transform = 'none';
+
+  try {
+    await nextFrame();
+
+    const capturePromise = domToCanvas(target, {
+      scale: 2,
+      backgroundColor: '#ffffff',
+      timeout: 8000,
+      width: target.offsetWidth,
+      height: target.offsetHeight,
+      includeStyleProperties: REPORT_STYLE_PROPERTIES,
+      features: {
+        copyScrollbar: false,
+      },
+      font: fontCssText ? { cssText: fontCssText } : false,
+      style: {
+        margin: '0',
+        boxShadow: 'none',
+        transform: 'none',
+      },
+    });
+
+    const canvas = await Promise.race([
+      capturePromise,
+      new Promise<never>((_, reject) =>
+        window.setTimeout(
+          () =>
+            reject(
+              new Error(
+                'استغرق تجهيز صورة التحليلات وقتاً أطول من المعتاد. يرجى المحاولة مجدداً.'
+              )
+            ),
+          15000
+        )
+      ),
+    ]);
+
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error('تعذر توليد ملف الصورة PNG.'))),
+        'image/png',
+        1.0
+      );
+    });
+
+    const safeName = fileName.replace(/[\\/:*?"<>|]+/g, '_');
+    const finalFileName = safeName.endsWith('.png') ? safeName : `${safeName}.png`;
+
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = finalFileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.setTimeout(() => {
+      URL.revokeObjectURL(blobUrl);
+    }, 10000);
+  } finally {
+    container.style.transform = prevTransform;
+    container.style.transition = prevTransition;
+  }
+}
+

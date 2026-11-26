@@ -30,7 +30,6 @@ const GEMINI_MODEL_CANDIDATES = [
   process.env.GEMINI_MODEL,
   'gemini-4-hydrogen',
   'gemini-3.1-flash-lite',
-  'gemini-2.5-flash',
 ].filter((m): m is string => Boolean(m && m.trim()));
 
 async function generateWithFallback(
@@ -205,19 +204,19 @@ app.post('/api/generate-pedagogy', async (req: Request, res: Response) => {
         : '';
 
     let systemInstruction =
-      'أنت مفتش تربوي وأستاذ مكون لمادة الرياضيات في المنظومة التربوية المغربية، ضابط لمذكرة التقويم والتوجيهات التربوية والأطر المرجعية لمادة الرياضيات. اكتب بلغة عربية رياضية وتربوية دقيقة خالية من الحشو.';
+      'أنت مفتش تربوي وأستاذ مكون لمادة الرياضيات في المنظومة التربوية المغربية، ضابط للمذكرة الوزارية 142-08 والتوجيهات التربوية والأطر المرجعية لمادة الرياضيات. اكتب بلغة عربية رياضية وتربوية دقيقة خالية من الحشو.';
     let prompt = '';
 
     if (language === 'fr') {
       systemInstruction =
-        "Tu es un inspecteur pédagogique et professeur formateur de Mathématiques au Maroc (Note ministérielle d'évaluation, sections BIOF/APIC). Rédige en français académique et didactique rigoureux, concis et opérationnel.";
+        "Tu es un inspecteur pédagogique et professeur formateur de Mathématiques au Maroc (Note ministérielle 142-08 d'évaluation, sections BIOF/APIC). Rédige en français académique et didactique rigoureux, concis et opérationnel.";
       prompt = `À partir des indicateurs statistiques réels suivants d'un devoir surveillé de Mathématiques (système éducatif marocain BIOF/APIC), rédige un diagnostic pédagogique réaliste, précis et prêt pour l'inspection :
 
 - Titre du rapport : ${reportTitle || 'Rapport de suivi du devoir surveillé de Mathématiques'}
 - Discipline : ${metadata?.subject || 'Mathématiques'}
 - Niveau & Classe : ${metadata?.level || ''} (${metadata?.className || ''})
 - Devoir & Semestre : ${metadata?.examNumber || ''} - ${metadata?.semester || ''}
-- Référentiel pédagogique : Note ministérielle d'évaluation (Mathématiques) et Orientations Pédagogiques (application directe, raisonnement/démonstration en situations familières, résolution de problèmes de synthèse).
+- Référentiel pédagogique : Note ministérielle 142-08 (Mathématiques, 100% devoirs surveillés) et Orientations Pédagogiques (application directe, raisonnement/démonstration en situations familières, résolution de problèmes de synthèse).
 - Effectif : ${safeTotal} | Présents : ${safePresent} | Absents : ${safeAbsent}
 - Seuil de maîtrise : ${passThreshold}/20 | Seuil d'excellence : ${excellenceThreshold}/20
 - Taux de réussite (≥ ${passThreshold}) : ${safePassRate.toFixed(1)}% (${safePassed} élèves)
@@ -260,13 +259,13 @@ Output strictly in English:
 5. remediationNotes: brief 2-line follow-up protocol on post-support evaluation.
 6. remediationActions: 3 differentiated tiers (targetGroup, competencies, activity, timeframe).`;
     } else {
-      prompt = `بناء على المعطيات الإحصائية الحقيقية التالية لفرض محروس في مادة الرياضيات بالتعليم المغربي (وفق مذكرة التقويم والتوجيهات التربوية للرياضيات)، صغ تحليلا تربويا واقعيا، مركزا، وبأسلوب إداري تربوي مغربي رصين (مناسب للعرض على الإدارة التربوية والمفتش التربوي):
+      prompt = `بناء على المعطيات الإحصائية الحقيقية التالية لفرض محروس في مادة الرياضيات بالتعليم المغربي (وفق المذكرة الوزارية 142-08 والتوجيهات التربوية للرياضيات)، صغ تحليلا تربويا واقعيا، مركزا، وبأسلوب إداري تربوي مغربي رصين (مناسب للعرض على الإدارة التربوية والمفتش التربوي):
 
 - عنوان التقرير: ${reportTitle || 'تقرير نتائج الفرض المحروس في الرياضيات'}
 - المادة: ${metadata?.subject || 'الرياضيات'}
 - المستوى والقسم: ${metadata?.level || ''} (${metadata?.className || ''})
 - الفرض والدورة: ${metadata?.examNumber || ''} - ${metadata?.semester || ''}
-- المرجعية البيداغوجية: مذكرة التقويم التربوي والتوجيهات التربوية لمادة الرياضيات (تدرج المهارات: التطبيق المباشر، الاستدلال والبرهان في وضعيات مألوفة، وحل المسائل التوليفية؛ دقة الرموز والتأويل المبياني).
+- المرجعية البيداغوجية: المذكرة الوزارية رقم 142-08 (100% فروض محروسة) والتوجيهات التربوية لمادة الرياضيات (تدرج المهارات: التطبيق المباشر، الاستدلال والبرهان في وضعيات مألوفة، وحل المسائل التوليفية؛ دقة الرموز والتأويل المبياني).
 - عدد المسجلين: ${safeTotal} | الحاضرون: ${safePresent} | الغائبون: ${safeAbsent}
 - عتبة التحكم المعتمدة: ${passThreshold}/20 | عتبة التميز: ${excellenceThreshold}/20
 - نسبة الحاصلين على المعدل (≥ ${passThreshold}): ${safePassRate.toFixed(1)}% (${safePassed} تلميذا)

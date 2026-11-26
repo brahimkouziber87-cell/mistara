@@ -820,14 +820,34 @@ export default function App() {
         {activeStep === 'analytics' && (
           <AnalyticsAndCouncilView
             projects={archivedProjects}
+            activeDataset={
+              students.length > 0
+                ? {
+                    id: 'live-workspace',
+                    label:
+                      [metadata.className || 'القسم الحالي', metadata.examNumber]
+                        .filter(Boolean)
+                        .join(' · ') || 'القسم النشط',
+                    isLiveWorkspace: true,
+                    students,
+                    metadata,
+                    template: activeTemplate,
+                    stats,
+                    itemDefinitions,
+                    studentItemScores,
+                  }
+                : null
+            }
             hasActiveStudents={students.length > 0}
             onSaveCurrentToArchive={async () => {
               await handleSaveCurrentToArchive(true);
             }}
             onCreateDemoCohort={handleCreateDemoCohort}
+            onLoadSampleData={handleLoadSampleData}
             onLoadProject={handleLoadArchivedProject}
             onOpenArchiveDrawer={() => setIsArchiveDrawerOpen(true)}
             onBackToWorkflow={() => navigateToStep(lastWorkflowStep)}
+            onGoToCustomizeItems={() => navigateToStep('customize')}
           />
         )}
       </main>

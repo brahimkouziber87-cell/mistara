@@ -19,7 +19,7 @@ const WORKFLOW_TABS: {
   { id: 'massar', stepNum: '1', label: 'استيراد مسار' },
   { id: 'customize', stepNum: '2', label: 'التشخيص والمعالجة' },
   { id: 'preview', stepNum: '3', label: 'التقرير والطباعة' },
-  { id: 'analytics', label: 'التتبع والمجالس', isAnalytics: true },
+  { id: 'analytics', label: 'التحليلات ومنحنى غوص', isAnalytics: true },
 ];
 
 export const HeaderNav: React.FC<HeaderNavProps> = ({

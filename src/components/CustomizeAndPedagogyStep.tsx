@@ -21,11 +21,13 @@ import {
   Upload,
 } from 'lucide-react';
 import {
+  AVAILABLE_REPORT_SECTION_CATALOG,
   DEFAULT_BRACKETS,
   EXAM_NUMBER_OPTIONS,
   MEMO_142_BRACKETS,
   REPORT_COLOR_THEMES,
   REPORT_FONT_OPTIONS,
+  REPORT_FRAME_OPTIONS,
   TEMPLATE_PRESETS,
 } from '../data/presets';
 import { getReportLabels } from '../data/reportI18n';
@@ -36,7 +38,9 @@ import {
   MassarMetadata,
   ReportFontFamily,
   ReportFontScale,
+  ReportFrameStyle,
   ReportLanguage,
+  ReportSectionType,
   ReportTemplateSchema,
   ScoreBracket,
   StudentItemScores,
@@ -56,6 +60,7 @@ import { CompetencyBankPanel } from './CompetencyBankPanel';
 import { ItemAnalysisMatrixPanel } from './ItemAnalysisMatrixPanel';
 import { Memo142MathPanel } from './Memo142MathPanel';
 import { RemediationCardsConfigPanel } from './RemediationCardsConfigPanel';
+import { resolveReportFrameStyle } from './ReportSheetFrame';
 
 interface CustomizeAndPedagogyStepProps {
   metadata: MassarMetadata;
@@ -112,6 +117,8 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
   const [docxImportError, setDocxImportError] = useState<string | null>(null);
   const [docxImportResult, setDocxImportResult] =
     useState<DocxTemplateImportResult | null>(null);
+  const [presetApplyMode, setPresetApplyMode] = useState<'full' | 'structure-only'>('full');
+  const [showAddSectionPicker, setShowAddSectionPicker] = useState(false);
 
   const handleUploadSignatureImage = (file: File) => {
     setSignatureUploadError(null);
@@ -1114,7 +1121,7 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
                           onChange={(e) => onUpdateMetadata({ duration: e.target.value })}
                           className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-900 placeholder:text-slate-400 transition-colors focus:border-teal-700 focus:ring-2 focus:ring-teal-700/15 focus:outline-none"
                         />
-                        {['1h', '2h'].map((dur) => (
+                        {['1h', '1h30', '2h', '3h'].map((dur) => (
                           <button
                             key={dur}
                             type="button"
@@ -1407,22 +1414,81 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <h2 className="text-base font-bold text-slate-900">
-                      02. خطوط الكتابة والألوان وتنسيق التقرير
+                      02. تخصيص هيكل التقرير (Report Template) والهوية البصرية
                     </h2>
                     <p className="mt-0.5 text-xs text-slate-500">
-                      اختر الخط العربي المناسب وهوية الألوان المؤسساتية وتخطيط الجداول والأطر
+                      بدّل بين قوالب العرض المتخصصة (التحليل الفردي، التوصيات التربوية، المذكرة 142-08، التنفيذي...) وخصّص أقسام وخطوط وألوان التقرير
                     </p>
                   </div>
+                  <span className="inline-flex items-center gap-1.5 rounded-md border border-teal-200 bg-teal-50 px-2.5 py-1 text-[11px] font-bold text-teal-900">
+                    <span>القالب النشط:</span>
+                    <span>
+                      {TEMPLATE_PRESETS.find((p) => p.id === template.id)?.focusBadge?.split(':')[0] ||
+                        template.name}
+                    </span>
+                  </span>
                 </div>
 
                 {/* Ready Template Presets Selector */}
-                <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-                  <div className="mb-2 text-xs font-bold text-slate-800">
-                    نماذج التقارير الجاهزة المعتمدة (تبديل فوري مع الحفاظ على صياغتك التربوية)
+                <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <div className="text-xs font-bold text-slate-900">
+                        قوالب هيكل التقرير المعتمدة (5 قوالب عرض متخصصة قابلة للتبديل الفوري)
+                      </div>
+                      <p className="mt-0.5 text-[11px] text-slate-500">
+                        اختر القالب الأنسب لهدفك التربوي (تتبع فردي للمتعلمين، توصيات وخطة دعم للمفتش، أو تقرير مزدوج شامل) مع الحفاظ التام على تشخيصك ومعطياتك
+                      </p>
+                    </div>
+
+                    {/* Mode Toggle: Full Template vs Structure Only */}
+                    <div
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-0.5"
+                      role="group"
+                      aria-label="نمط تطبيق القالب"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setPresetApplyMode('full')}
+                        className={`rounded-md px-2.5 py-1 text-[10.5px] font-bold transition-colors cursor-pointer ${
+                          presetApplyMode === 'full'
+                            ? 'bg-teal-700 text-white shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        تطبيق الهيكل + التنسيق البصري
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPresetApplyMode('structure-only')}
+                        className={`rounded-md px-2.5 py-1 text-[10.5px] font-bold transition-colors cursor-pointer ${
+                          presetApplyMode === 'structure-only'
+                            ? 'bg-teal-700 text-white shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        تبديل هيكل الأقسام فقط (حفظ الخط والألوان)
+                      </button>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+
+                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                     {TEMPLATE_PRESETS.map((preset) => {
                       const isPresetActive = template.id === preset.id;
+                      const page1Count = preset.sections.filter(
+                        (s) => s.enabled && (s.page ?? 1) === 1
+                      ).length;
+                      const page2Count = preset.sections.filter(
+                        (s) => s.enabled && s.page === 2
+                      ).length;
+                      const keySectionLabels = preset.sections
+                        .filter((s) => s.enabled && s.type !== 'metadata_grid' && s.type !== 'signatures')
+                        .map((s) => {
+                          const cat = AVAILABLE_REPORT_SECTION_CATALOG.find((c) => c.type === s.type);
+                          return cat ? cat.label.split(' (')[0] : s.title;
+                        })
+                        .slice(0, 4);
+
                       return (
                         <button
                           key={preset.id}
@@ -1440,22 +1506,52 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
                                 teacherSignatureText: prev.headerConfig.teacherSignatureText,
                                 teacherSignatureImage: prev.headerConfig.teacherSignatureImage,
                               };
+                              const nextStyleConfig =
+                                presetApplyMode === 'structure-only'
+                                  ? prev.styleConfig
+                                  : {
+                                      ...preset.styleConfig,
+                                      fontScale: prev.styleConfig.fontScale ?? 'standard',
+                                    };
+                              const nextRemediationCardsConfig =
+                                preset.id === 'preset-individual-focus'
+                                  ? {
+                                      ...(prev.remediationCardsConfig ||
+                                        preset.remediationCardsConfig!),
+                                      enabledInFullReport: true,
+                                    }
+                                  : prev.remediationCardsConfig || preset.remediationCardsConfig;
+
+                              const clonedSections = preset.sections.map((s) => ({ ...s }));
+                              const clonedSignatures = preset.signatures.map((sig) => ({ ...sig }));
+
                               if (prevLang === 'ar') {
                                 return {
                                   ...preset,
+                                  sections: clonedSections,
+                                  signatures: clonedSignatures,
+                                  hasTwoPages: clonedSections.some((s) => s.enabled && s.page === 2),
+                                  styleConfig: nextStyleConfig,
                                   headerConfig: {
                                     ...preset.headerConfig,
                                     ...preservedSignature,
+                                    ministryLine:
+                                      prev.headerConfig.ministryLine ||
+                                      preset.headerConfig.ministryLine,
                                     reportLanguage: prevLang,
                                     includeFrenchHeader: prevIncludeFr,
                                   },
                                   pedagogicalContent: prev.pedagogicalContent,
-                                  remediationCardsConfig: prev.remediationCardsConfig,
+                                  remediationCardsConfig: nextRemediationCardsConfig,
                                 };
                               }
                               const localized = getReportLabels(prevLang);
                               return {
                                 ...preset,
+                                sections: clonedSections,
+                                signatures: clonedSignatures,
+                                hasTwoPages: clonedSections.some((s) => s.enabled && s.page === 2),
+                                styleConfig: nextStyleConfig,
                                 headerConfig: {
                                   ...preset.headerConfig,
                                   ...preservedSignature,
@@ -1468,19 +1564,55 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
                                   appendixTitle: localized.defaultAppendixTitle,
                                 },
                                 pedagogicalContent: prev.pedagogicalContent,
-                                remediationCardsConfig: prev.remediationCardsConfig,
+                                remediationCardsConfig: nextRemediationCardsConfig,
                               };
                             });
                           }}
-                          className={`rounded-lg border p-2.5 text-right transition-all cursor-pointer ${
+                          className={`flex flex-col justify-between rounded-xl border p-3 text-right transition-all cursor-pointer ${
                             isPresetActive
-                              ? 'border-teal-700 bg-teal-50/70 ring-1 ring-teal-700/20'
-                              : 'border-slate-200 bg-white hover:border-slate-300'
+                              ? 'border-teal-700 bg-teal-50/75 ring-2 ring-teal-700/20 shadow-xs'
+                              : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/40'
                           }`}
                         >
-                          <div className="text-xs font-bold text-slate-900">{preset.name}</div>
-                          <div className="mt-0.5 line-clamp-2 text-[10.5px] leading-snug text-slate-500">
-                            {preset.analysisSummary || preset.headerConfig.reportTitle}
+                          <div>
+                            <div className="mb-1.5 flex flex-wrap items-center justify-between gap-1.5">
+                              <span
+                                className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold text-white"
+                                style={{
+                                  backgroundColor: preset.styleConfig.accentColor || '#1e3a8a',
+                                }}
+                              >
+                                {preset.focusBadge || 'قالب رسمي معتمد'}
+                              </span>
+                              <span className="rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 font-mono text-[9.5px] font-semibold text-slate-700">
+                                {page2Count > 0
+                                  ? `صفحتان (${page1Count} ص1 + ${page2Count} ص2)`
+                                  : `صفحة واحدة (${page1Count} أقسام)`}
+                              </span>
+                            </div>
+
+                            <div className="text-xs font-extrabold text-slate-900">
+                              {preset.name}
+                            </div>
+                            <div className="mt-1 line-clamp-2 text-[10.5px] leading-relaxed text-slate-600">
+                              {preset.analysisSummary || preset.headerConfig.reportTitle}
+                            </div>
+                          </div>
+
+                          <div className="mt-2.5 flex flex-wrap items-center gap-1 border-t border-slate-100 pt-2">
+                            {keySectionLabels.map((lbl, i) => (
+                              <span
+                                key={i}
+                                className="rounded border border-slate-200/90 bg-slate-50 px-1.5 py-0.5 text-[9.5px] font-semibold text-slate-700"
+                              >
+                                {lbl}
+                              </span>
+                            ))}
+                            {preset.useCaseTag && (
+                              <span className="mr-auto text-[9.5px] font-bold text-teal-800">
+                                {preset.useCaseTag}
+                              </span>
+                            )}
                           </div>
                         </button>
                       );
@@ -1961,40 +2093,189 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
                     })}
                   </div>
 
-                  {/* Live Compact Typography & Color Specimen */}
+                  {/* Curated A4 Page Frame Selector */}
+                  <div className="mt-5 border-t border-slate-100 pt-4">
+                    <div className="mb-2.5 flex items-center justify-between gap-2">
+                      <h3 className="text-xs font-bold text-slate-800">
+                        إطار الورقة الخارجي للتقرير (A4 Frame)
+                      </h3>
+                      <span className="text-[11px] text-slate-500">
+                        مضبوط داخل هوامش الطباعة لعدم الاقتطاع
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+                      {REPORT_FRAME_OPTIONS.map((frameOpt) => {
+                        const activeFrame = resolveReportFrameStyle(template.styleConfig);
+                        const isSelected = activeFrame === frameOpt.id;
+                        const primary = template.styleConfig.accentColor || '#1e3a8a';
+                        const secondary = template.styleConfig.secondaryAccent || '#0f766e';
+                        return (
+                          <button
+                            key={frameOpt.id}
+                            type="button"
+                            onClick={() =>
+                              onUpdateTemplate((prev) => ({
+                                ...prev,
+                                styleConfig: {
+                                  ...prev.styleConfig,
+                                  frameStyle: frameOpt.id as ReportFrameStyle,
+                                  showOuterFrame: frameOpt.id !== 'none',
+                                },
+                              }))
+                            }
+                            className={`flex flex-col items-center rounded-xl border p-2.5 text-center transition-all cursor-pointer ${
+                              isSelected
+                                ? 'border-teal-700 bg-teal-50/45 ring-2 ring-teal-700/15'
+                                : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60'
+                            }`}
+                          >
+                            {/* Miniature A4 Frame Preview */}
+                            <div className="mb-2 flex h-12 w-10 items-center justify-center rounded-[2px] border border-slate-200 bg-white p-1 shadow-2xs">
+                              {frameOpt.id === 'double-inset' && (
+                                <div
+                                  className="flex h-full w-full flex-col p-[1.5px]"
+                                  style={{ border: `1.5px solid ${primary}` }}
+                                >
+                                  <div
+                                    className="h-[2px] w-full mb-[1.5px]"
+                                    style={{
+                                      background: `linear-gradient(90deg, ${primary}, ${secondary})`,
+                                    }}
+                                  />
+                                  <div
+                                    className="flex-1"
+                                    style={{ border: `0.75px solid ${primary}55` }}
+                                  />
+                                </div>
+                              )}
+                              {frameOpt.id === 'royal-corners' && (
+                                <div
+                                  className="relative h-full w-full"
+                                  style={{ border: `1px solid ${primary}55` }}
+                                >
+                                  <span
+                                    className="absolute -top-[1px] -right-[1px] h-2 w-2"
+                                    style={{
+                                      borderTop: `2px solid ${primary}`,
+                                      borderRight: `2px solid ${primary}`,
+                                    }}
+                                  />
+                                  <span
+                                    className="absolute -top-[1px] -left-[1px] h-2 w-2"
+                                    style={{
+                                      borderTop: `2px solid ${primary}`,
+                                      borderLeft: `2px solid ${primary}`,
+                                    }}
+                                  />
+                                  <span
+                                    className="absolute -bottom-[1px] -right-[1px] h-2 w-2"
+                                    style={{
+                                      borderBottom: `2px solid ${primary}`,
+                                      borderRight: `2px solid ${primary}`,
+                                    }}
+                                  />
+                                  <span
+                                    className="absolute -bottom-[1px] -left-[1px] h-2 w-2"
+                                    style={{
+                                      borderBottom: `2px solid ${primary}`,
+                                      borderLeft: `2px solid ${primary}`,
+                                    }}
+                                  />
+                                </div>
+                              )}
+                              {frameOpt.id === 'classic-double' && (
+                                <div
+                                  className="h-full w-full"
+                                  style={{ border: `3px double ${primary}` }}
+                                />
+                              )}
+                              {frameOpt.id === 'top-bottom-bands' && (
+                                <div className="flex h-full w-full flex-col justify-between">
+                                  <div
+                                    className="h-[3px] w-full"
+                                    style={{
+                                      background: `linear-gradient(90deg, ${primary}, ${secondary})`,
+                                    }}
+                                  />
+                                  <div className="mx-1 space-y-1">
+                                    <div className="h-[2px] w-full bg-slate-200" />
+                                    <div className="h-[2px] w-2/3 bg-slate-200" />
+                                  </div>
+                                  <div
+                                    className="h-[2px] w-full"
+                                    style={{
+                                      background: `linear-gradient(90deg, ${secondary}, ${primary})`,
+                                    }}
+                                  />
+                                </div>
+                              )}
+                              {frameOpt.id === 'none' && (
+                                <div className="flex h-full w-full flex-col justify-center gap-1 px-1">
+                                  <div className="h-[2px] w-full bg-slate-200" />
+                                  <div className="h-[2px] w-3/4 bg-slate-200" />
+                                  <div className="h-[2px] w-1/2 bg-slate-200" />
+                                </div>
+                              )}
+                            </div>
+                            <span className="text-[11px] font-bold text-slate-900 leading-tight">
+                              {frameOpt.name}
+                            </span>
+                            <span className="mt-0.5 text-[9.5px] leading-snug text-slate-500 line-clamp-2">
+                              {frameOpt.description}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Live Compact Typography, Color & Frame Specimen */}
                   {(() => {
                     const activeFont =
                       REPORT_FONT_OPTIONS.find((f) => f.id === template.styleConfig.fontFamily) ||
                       REPORT_FONT_OPTIONS[0];
+                    const activeFrame = resolveReportFrameStyle(template.styleConfig);
                     const primary = template.styleConfig.accentColor || '#1e3a8a';
                     const secondary = template.styleConfig.secondaryAccent || '#0f766e';
                     return (
-                      <div
-                        className={`mt-3 overflow-hidden rounded-xl border bg-white ${activeFont.cssClass}`}
-                        style={{ borderColor: `${primary}40` }}
-                      >
+                      <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-2.5">
                         <div
-                          className="flex items-center justify-between px-3 py-1.5 text-xs font-bold text-white"
-                          style={{ backgroundColor: primary }}
+                          className={`relative overflow-hidden rounded-[4px] bg-white ${activeFont.cssClass}`}
+                          style={
+                            activeFrame === 'classic-double'
+                              ? { border: `4px double ${primary}` }
+                              : activeFrame === 'double-inset'
+                              ? { border: `1.5px solid ${primary}`, padding: '2px' }
+                              : activeFrame === 'royal-corners'
+                              ? { border: `1px solid ${primary}60`, padding: '2px' }
+                              : { border: `1px solid ${primary}30` }
+                          }
                         >
-                          <span>معاينة حية للخط واللون: {template.headerConfig.reportTitle}</span>
-                          <span className="font-mono text-[11px] tabular-nums opacity-90">
-                            {activeFont.name}
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-xs text-slate-800">
-                          <span>
-                            المملكة المغربية ·{' '}
-                            <strong style={{ color: primary }}>
-                              {template.headerConfig.ministryLine}
-                            </strong>
-                          </span>
-                          <span
-                            className="font-mono text-[11px] font-bold tabular-nums"
-                            style={{ color: secondary }}
+                          <div
+                            className="flex items-center justify-between px-3 py-1.5 text-xs font-bold text-white"
+                            style={{
+                              background: `linear-gradient(to left, ${primary} 0%, ${secondary} 100%)`,
+                            }}
                           >
-                            معدل القسم: {stats.present > 0 ? stats.average.toFixed(2) : '13.45'}/20
-                          </span>
+                            <span>معاينة حية للإخراج: {template.headerConfig.reportTitle}</span>
+                            <span className="font-mono text-[11px] tabular-nums opacity-95">
+                              {activeFont.name}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-xs text-slate-800">
+                            <span>
+                              المملكة المغربية ·{' '}
+                              <strong style={{ color: primary }}>
+                                {template.headerConfig.ministryLine}
+                              </strong>
+                            </span>
+                            <span
+                              className="font-mono text-[11px] font-bold tabular-nums"
+                              style={{ color: secondary }}
+                            >
+                              معدل القسم: {stats.present > 0 ? stats.average.toFixed(2) : '13.45'}/20
+                            </span>
+                          </div>
                         </div>
                       </div>
                     );
@@ -2005,7 +2286,7 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
                 <div className="mt-5 grid grid-cols-1 gap-3.5 border-t border-slate-100 pt-4 sm:grid-cols-3">
                   <div>
                     <label className="mb-1 block text-xs font-semibold text-slate-700">
-                      أسلوب التاطير والأقسام
+                      أسلوب عناوين الأقسام
                     </label>
                     <select
                       value={template.styleConfig.borderStyle}
@@ -2016,16 +2297,15 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
                             ...prev.styleConfig,
                             borderStyle: e.target
                               .value as ReportTemplateSchema['styleConfig']['borderStyle'],
-                            showOuterFrame: e.target.value === 'official-double',
                           },
                         }))
                       }
                       className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-900 transition-colors focus:border-teal-700 focus:ring-2 focus:ring-teal-700/15 focus:outline-none"
                     >
-                      <option value="section-banners">أشرطة ملونة حديثة</option>
-                      <option value="official-double">إطار رسمي مزدوج</option>
-                      <option value="classic-grid">خطوط فصل كلاسيكية</option>
-                      <option value="modern-minimal">تصميم بسيط هادئ</option>
+                      <option value="section-banners">أشرطة متدرجة حديثة</option>
+                      <option value="official-double">أشرطة رسمية مزدوجة</option>
+                      <option value="classic-grid">عناوين مؤطرة كلاسيكية</option>
+                      <option value="modern-minimal">خط سفلي تحريري هادئ</option>
                     </select>
                   </div>
                   <div>
@@ -2069,6 +2349,7 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
                       }
                       className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-900 transition-colors focus:border-teal-700 focus:ring-2 focus:ring-teal-700/15 focus:outline-none"
                     >
+                      <option value="gauss">منحنى غوص الطبيعي (Courbe de Gauss)</option>
                       <option value="donut">مبيان دائري (Donut)</option>
                       <option value="bar">أعمدة عمودية</option>
                       <option value="horizontal-bar">أشرطة أفقية</option>
@@ -2077,72 +2358,737 @@ export const CustomizeAndPedagogyStep: React.FC<CustomizeAndPedagogyStepProps> =
                   </div>
                 </div>
 
+                {/* Report Structure & Sections Architect */}
                 <div className="mt-5 border-t border-slate-100 pt-4">
-                  <h3 className="mb-2.5 text-xs font-bold text-slate-800">
-                    ترتيب وتفعيل أقسام النموذج
-                  </h3>
-                  <div className="space-y-2">
-                    {template.sections.map((sec, idx) => (
-                      <div
-                        key={sec.id}
-                        className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2"
-                      >
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onUpdateTemplate((prev) => ({
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-xs font-bold text-slate-900">
+                        تخصيص هيكل وأقسام التقرير وتوزيع الصفحات (Report Structure Builder)
+                      </h3>
+                      <p className="mt-0.5 text-[11px] text-slate-500">
+                        فعّل أو أخفِ أي قسم، غيّر عنوانه أو ترتيبه، انقله بين الصفحة 1 والصفحة 2، أو أضف أقساماً جديدة (تفييء المتعلمين، جدول خطة الدعم، فقرة توصيات...)
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="rounded-md border border-teal-200 bg-teal-50 px-2 py-0.5 font-mono text-[10.5px] font-bold text-teal-900">
+                        ص 1:{' '}
+                        {
+                          template.sections.filter(
+                            (s) => s.enabled && (s.page ?? 1) === 1
+                          ).length
+                        }{' '}
+                        أقسام
+                      </span>
+                      <span className="rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 font-mono text-[10.5px] font-bold text-indigo-900">
+                        ص 2:{' '}
+                        {
+                          template.sections.filter(
+                            (s) => s.enabled && s.page === 2
+                          ).length
+                        }{' '}
+                        أقسام
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const currentPreset =
+                            TEMPLATE_PRESETS.find((p) => p.id === template.id) ||
+                            TEMPLATE_PRESETS[0];
+                          onUpdateTemplate((prev) => {
+                            const resetSections = currentPreset.sections.map((s) => ({ ...s }));
+                            return {
                               ...prev,
-                              sections: prev.sections.map((s) =>
-                                s.id === sec.id ? { ...s, enabled: !s.enabled } : s
-                              ),
-                            }))
-                          }
-                          aria-label={sec.enabled ? 'إخفاء القسم' : 'إظهار القسم'}
-                          className="text-slate-600 hover:text-teal-700 cursor-pointer"
-                        >
-                          {sec.enabled ? (
-                            <Eye className="h-4 w-4 text-teal-700" />
-                          ) : (
-                            <EyeOff className="h-4 w-4 text-slate-400" />
-                          )}
-                        </button>
+                              sections: resetSections,
+                              hasTwoPages: resetSections.some((s) => s.enabled && s.page === 2),
+                            };
+                          });
+                        }}
+                        className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[10.5px] font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 cursor-pointer"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                        استعادة هيكل القالب
+                      </button>
+                    </div>
+                  </div>
 
+                  {/* Quick Structure Focus Pills */}
+                  <div className="mb-3 flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-200/80 bg-slate-50/70 px-3 py-2">
+                    <span className="text-[11px] font-bold text-slate-700">
+                      تكييف سريع للهيكل:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onUpdateTemplate((prev) => {
+                          const hasTopLow = prev.sections.some(
+                            (s) => s.type === 'top_and_struggling'
+                          );
+                          let nextSections = prev.sections.map((s) =>
+                            s.type === 'top_and_struggling'
+                              ? { ...s, enabled: true, page: 1 as const }
+                              : s
+                          );
+                          if (!hasTopLow) {
+                            const signIdx = nextSections.findIndex(
+                              (s) => s.type === 'signatures'
+                            );
+                            const newSec = {
+                              id: `sec-top-low-${Date.now()}`,
+                              type: 'top_and_struggling' as ReportSectionType,
+                              title:
+                                'تفييء المتعلمين: لائحة التميز ولائحة الدعم الاستدراكي الفردي',
+                              enabled: true,
+                              page: 1 as const,
+                            };
+                            if (signIdx >= 0) {
+                              nextSections = [
+                                ...nextSections.slice(0, signIdx),
+                                newSec,
+                                ...nextSections.slice(signIdx),
+                              ];
+                            } else {
+                              nextSections = [...nextSections, newSec];
+                            }
+                          }
+                          return {
+                            ...prev,
+                            sections: nextSections,
+                            hasTwoPages: nextSections.some((s) => s.enabled && s.page === 2),
+                          };
+                        })
+                      }
+                      className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10.5px] font-semibold text-slate-700 transition-colors hover:border-teal-600 hover:bg-teal-50/60 hover:text-teal-900 cursor-pointer"
+                    >
+                      + إبراز تفييء المتعلمين (فردي)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onUpdateTemplate((prev) => {
+                          const hasPlan = prev.sections.some(
+                            (s) => s.type === 'remediation_plan'
+                          );
+                          let nextSections = prev.sections.map((s) =>
+                            s.type === 'remediation_plan' || s.type === 'pedagogical_diagnosis'
+                              ? { ...s, enabled: true, page: 1 as const }
+                              : s
+                          );
+                          if (!hasPlan) {
+                            const signIdx = nextSections.findIndex(
+                              (s) => s.type === 'signatures'
+                            );
+                            const newSec = {
+                              id: `sec-remed-plan-${Date.now()}`,
+                              type: 'remediation_plan' as ReportSectionType,
+                              title:
+                                'جدول خطة الدعم والمعالجة التربوية المبرمجة حسب مجموعات الحاجة',
+                              enabled: true,
+                              page: 1 as const,
+                            };
+                            if (signIdx >= 0) {
+                              nextSections = [
+                                ...nextSections.slice(0, signIdx),
+                                newSec,
+                                ...nextSections.slice(signIdx),
+                              ];
+                            } else {
+                              nextSections = [...nextSections, newSec];
+                            }
+                          }
+                          return {
+                            ...prev,
+                            sections: nextSections,
+                            hasTwoPages: nextSections.some((s) => s.enabled && s.page === 2),
+                          };
+                        })
+                      }
+                      className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10.5px] font-semibold text-slate-700 transition-colors hover:border-teal-600 hover:bg-teal-50/60 hover:text-teal-900 cursor-pointer"
+                    >
+                      + إبراز جدول خطة الدعم والتوصيات
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onUpdateTemplate((prev) => {
+                          const hasRoster = prev.sections.some(
+                            (s) => s.type === 'dual_roster_merit'
+                          );
+                          const isRosterEnabled = prev.sections.some(
+                            (s) => s.type === 'dual_roster_merit' && s.enabled
+                          );
+                          let nextSections = prev.sections.map((s) =>
+                            s.type === 'dual_roster_merit'
+                              ? { ...s, enabled: !isRosterEnabled, page: 2 as const }
+                              : s
+                          );
+                          if (!hasRoster) {
+                            nextSections = [
+                              ...nextSections,
+                              {
+                                id: `sec-roster-${Date.now()}`,
+                                type: 'dual_roster_merit' as ReportSectionType,
+                                title:
+                                  'كشف نقط القسم حسب الترتيب التسلسلي والترتيب الاستحقاقي',
+                                enabled: true,
+                                page: 2 as const,
+                              },
+                            ];
+                          }
+                          return {
+                            ...prev,
+                            sections: nextSections,
+                            hasTwoPages: nextSections.some((s) => s.enabled && s.page === 2),
+                          };
+                        })
+                      }
+                      className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[10.5px] font-semibold text-slate-700 transition-colors hover:border-teal-600 hover:bg-teal-50/60 hover:text-teal-900 cursor-pointer"
+                    >
+                      {template.sections.some(
+                        (s) => s.type === 'dual_roster_merit' && s.enabled
+                      )
+                        ? 'إخفاء ملحق كشف النقط (ص 2)'
+                        : '+ تفعيل ملحق كشف النقط المزدوج (ص 2)'}
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {template.sections.map((sec, idx) => {
+                      const catInfo = AVAILABLE_REPORT_SECTION_CATALOG.find(
+                        (c) => c.type === sec.type
+                      );
+                      const secPage = sec.page ?? 1;
+                      const canDelete =
+                        sec.type === 'custom_text' ||
+                        sec.type === 'custom_table' ||
+                        template.sections.filter((s) => s.type === sec.type).length > 1 ||
+                        (sec.type !== 'metadata_grid' &&
+                          sec.type !== 'kpi_summary' &&
+                          sec.type !== 'signatures');
+
+                      return (
+                        <div
+                          key={sec.id}
+                          className={`rounded-lg border px-3 py-2 transition-colors ${
+                            sec.enabled
+                              ? 'border-slate-200 bg-slate-50/80'
+                              : 'border-slate-200/60 bg-slate-100/50 opacity-70'
+                          }`}
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onUpdateTemplate((prev) => {
+                                  const nextSections = prev.sections.map((s) =>
+                                    s.id === sec.id ? { ...s, enabled: !s.enabled } : s
+                                  );
+                                  return {
+                                    ...prev,
+                                    sections: nextSections,
+                                    hasTwoPages: nextSections.some(
+                                      (s) => s.enabled && s.page === 2
+                                    ),
+                                  };
+                                })
+                              }
+                              aria-label={sec.enabled ? 'إخفاء القسم' : 'إظهار القسم'}
+                              className="text-slate-600 hover:text-teal-700 cursor-pointer"
+                            >
+                              {sec.enabled ? (
+                                <Eye className="h-4 w-4 text-teal-700" />
+                              ) : (
+                                <EyeOff className="h-4 w-4 text-slate-400" />
+                              )}
+                            </button>
+
+                            <span className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[9.5px] font-bold text-slate-600 shrink-0">
+                              {catInfo ? catInfo.label.split(' (')[0] : sec.type}
+                            </span>
+
+                            <input
+                              type="text"
+                              value={sec.title}
+                              onChange={(e) =>
+                                onUpdateTemplate((prev) => ({
+                                  ...prev,
+                                  sections: prev.sections.map((s) =>
+                                    s.id === sec.id ? { ...s, title: e.target.value } : s
+                                  ),
+                                }))
+                              }
+                              className={`min-w-[160px] flex-1 bg-transparent text-xs font-semibold focus:outline-none ${
+                                sec.enabled
+                                  ? 'text-slate-900'
+                                  : 'text-slate-400 line-through'
+                              }`}
+                            />
+
+                            <div className="flex items-center gap-1">
+                              {/* Page 1 / Page 2 Toggle */}
+                              {sec.type !== 'signatures' && (
+                                <button
+                                  type="button"
+                                  title="نقل القسم بين الصفحة 1 والصفحة 2"
+                                  onClick={() =>
+                                    onUpdateTemplate((prev) => {
+                                      const targetPage: 1 | 2 = secPage === 2 ? 1 : 2;
+                                      const nextSections = prev.sections.map((s) =>
+                                        s.id === sec.id ? { ...s, page: targetPage } : s
+                                      );
+                                      return {
+                                        ...prev,
+                                        sections: nextSections,
+                                        hasTwoPages: nextSections.some(
+                                          (s) => s.enabled && s.page === 2
+                                        ),
+                                      };
+                                    })
+                                  }
+                                  className={`rounded px-1.5 py-0.5 font-mono text-[10px] font-bold transition-colors cursor-pointer ${
+                                    secPage === 2
+                                      ? 'border border-indigo-300 bg-indigo-50 text-indigo-900 hover:bg-indigo-100'
+                                      : 'border border-teal-300 bg-teal-50 text-teal-900 hover:bg-teal-100'
+                                  }`}
+                                >
+                                  {secPage === 2 ? 'ص 2' : 'ص 1'}
+                                </button>
+                              )}
+
+                              <button
+                                type="button"
+                                disabled={idx === 0}
+                                onClick={() => moveSection(idx, -1)}
+                                aria-label="تحريك للأعلى"
+                                className="rounded p-1 text-slate-500 hover:bg-white disabled:opacity-30 cursor-pointer"
+                              >
+                                <ArrowUp className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={idx === template.sections.length - 1}
+                                onClick={() => moveSection(idx, 1)}
+                                aria-label="تحريك للأسفل"
+                                className="rounded p-1 text-slate-500 hover:bg-white disabled:opacity-30 cursor-pointer"
+                              >
+                                <ArrowDown className="h-3.5 w-3.5" />
+                              </button>
+
+                              {canDelete && (
+                                <button
+                                  type="button"
+                                  title="إزالة هذا القسم من الهيكل"
+                                  onClick={() =>
+                                    onUpdateTemplate((prev) => {
+                                      const nextSections = prev.sections.filter(
+                                        (s) => s.id !== sec.id
+                                      );
+                                      return {
+                                        ...prev,
+                                        sections: nextSections,
+                                        hasTwoPages: nextSections.some(
+                                          (s) => s.enabled && s.page === 2
+                                        ),
+                                      };
+                                    })
+                                  }
+                                  className="rounded p-1 text-slate-400 hover:bg-red-50 hover:text-red-600 cursor-pointer"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Inline Body Editor for Custom Text Section (e.g., extra pedagogical recommendations) */}
+                          {sec.type === 'custom_text' && sec.enabled && (
+                            <div className="mt-2 border-t border-slate-200/80 pt-2">
+                              <label className="mb-1 block text-[10.5px] font-semibold text-slate-600">
+                                مضمون فقرة التوصيات / الملاحظات الخاصة:
+                              </label>
+                              <textarea
+                                rows={2}
+                                value={sec.bodyText || ''}
+                                onChange={(e) =>
+                                  onUpdateTemplate((prev) => ({
+                                    ...prev,
+                                    sections: prev.sections.map((s) =>
+                                      s.id === sec.id
+                                        ? { ...s, bodyText: e.target.value }
+                                        : s
+                                    ),
+                                  }))
+                                }
+                                placeholder="اكتب التوصيات التربوية أو خلاصة المجلس التعليمي هنا..."
+                                className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-900 focus:border-teal-700 focus:ring-2 focus:ring-teal-700/15 focus:outline-none"
+                              />
+                            </div>
+                          )}
+
+                          {/* Inline Editor for Custom Table Section */}
+                          {sec.type === 'custom_table' && sec.enabled && (
+                            <div className="mt-2 space-y-2 border-t border-slate-200/80 pt-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10.5px] font-semibold text-slate-600">
+                                  عناوين أعمدة الجدول المخصص (مفصولة بفاصلة):
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    onUpdateTemplate((prev) => ({
+                                      ...prev,
+                                      sections: prev.sections.map((s) => {
+                                        if (s.id !== sec.id) return s;
+                                        const colsCount = (s.columns || ['عمود 1', 'عمود 2']).length;
+                                        const nextRows = [
+                                          ...(s.rows || []),
+                                          Array.from({ length: colsCount }, () => '—'),
+                                        ];
+                                        return { ...s, rows: nextRows };
+                                      }),
+                                    }))
+                                  }
+                                  className="inline-flex items-center gap-1 rounded border border-teal-700/30 bg-teal-50 px-2 py-0.5 text-[10px] font-bold text-teal-900 hover:bg-teal-100 cursor-pointer"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                  إضافة سطر
+                                </button>
+                              </div>
+                              <input
+                                type="text"
+                                value={(sec.columns || []).join(' ، ')}
+                                onChange={(e) => {
+                                  const cols = e.target.value
+                                    .split(/[,،]/)
+                                    .map((c) => c.trim())
+                                    .filter(Boolean);
+                                  onUpdateTemplate((prev) => ({
+                                    ...prev,
+                                    sections: prev.sections.map((s) =>
+                                      s.id === sec.id
+                                        ? {
+                                            ...s,
+                                            columns: cols.length > 0 ? cols : ['البيان'],
+                                          }
+                                        : s
+                                    ),
+                                  }));
+                                }}
+                                className="w-full rounded border border-slate-300 bg-white px-2.5 py-1 text-xs text-slate-900"
+                              />
+                              {(sec.rows || []).map((row, rIdx) => (
+                                <div key={rIdx} className="flex items-center gap-1.5">
+                                  {(sec.columns || ['عمود 1', 'عمود 2']).map((_, cIdx) => (
+                                    <input
+                                      key={cIdx}
+                                      type="text"
+                                      value={row[cIdx] || ''}
+                                      onChange={(e) =>
+                                        onUpdateTemplate((prev) => ({
+                                          ...prev,
+                                          sections: prev.sections.map((s) => {
+                                            if (s.id !== sec.id) return s;
+                                            const copyRows = (s.rows || []).map((r) => [...r]);
+                                            if (!copyRows[rIdx]) copyRows[rIdx] = [];
+                                            copyRows[rIdx][cIdx] = e.target.value;
+                                            return { ...s, rows: copyRows };
+                                          }),
+                                        }))
+                                      }
+                                      className="min-w-0 flex-1 rounded border border-slate-300 bg-white px-2 py-1 text-[11px] text-slate-800"
+                                    />
+                                  ))}
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      onUpdateTemplate((prev) => ({
+                                        ...prev,
+                                        sections: prev.sections.map((s) =>
+                                          s.id === sec.id
+                                            ? {
+                                                ...s,
+                                                rows: (s.rows || []).filter(
+                                                  (_, idx2) => idx2 !== rIdx
+                                                ),
+                                              }
+                                            : s
+                                        ),
+                                      }))
+                                    }
+                                    className="text-slate-400 hover:text-red-600 cursor-pointer"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Add Section / Custom Recommendation Block Picker */}
+                  <div className="mt-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddSectionPicker((prev) => !prev)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-teal-700/50 bg-teal-50/40 px-3 py-1.5 text-xs font-bold text-teal-900 transition-colors hover:bg-teal-50 cursor-pointer"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>
+                        {showAddSectionPicker
+                          ? 'إغلاق قائمة الأقسام الإضافية'
+                          : 'إضافة قسم جديد أو فقرة توصيات إلى هيكل التقرير'}
+                      </span>
+                    </button>
+
+                    {showAddSectionPicker && (
+                      <div className="mt-2.5 grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50/80 p-3 sm:grid-cols-2">
+                        {AVAILABLE_REPORT_SECTION_CATALOG.map((item) => {
+                          const existingSection = template.sections.find(
+                            (s) => s.type === item.type
+                          );
+                          const isAlreadyEnabled =
+                            !item.allowMultiple && Boolean(existingSection?.enabled);
+
+                          return (
+                            <button
+                              key={item.type}
+                              type="button"
+                              disabled={isAlreadyEnabled}
+                              onClick={() => {
+                                onUpdateTemplate((prev) => {
+                                  if (!item.allowMultiple && existingSection) {
+                                    const nextSections = prev.sections.map((s) =>
+                                      s.id === existingSection.id
+                                        ? { ...s, enabled: true }
+                                        : s
+                                    );
+                                    return {
+                                      ...prev,
+                                      sections: nextSections,
+                                      hasTwoPages: nextSections.some(
+                                        (s) => s.enabled && s.page === 2
+                                      ),
+                                    };
+                                  }
+
+                                  const newSec = {
+                                    id: `sec-${item.type}-${Date.now()}`,
+                                    type: item.type,
+                                    title: item.defaultTitle,
+                                    enabled: true,
+                                    page: item.defaultPage,
+                                    bodyText: item.defaultBodyText,
+                                    columns: item.defaultColumns,
+                                    rows: item.defaultRows,
+                                  };
+
+                                  const signIdx = prev.sections.findIndex(
+                                    (s) => s.type === 'signatures'
+                                  );
+                                  const nextSections =
+                                    item.defaultPage === 1 && signIdx >= 0
+                                      ? [
+                                          ...prev.sections.slice(0, signIdx),
+                                          newSec,
+                                          ...prev.sections.slice(signIdx),
+                                        ]
+                                      : [...prev.sections, newSec];
+
+                                  return {
+                                    ...prev,
+                                    sections: nextSections,
+                                    hasTwoPages: nextSections.some(
+                                      (s) => s.enabled && s.page === 2
+                                    ),
+                                  };
+                                });
+                                setShowAddSectionPicker(false);
+                              }}
+                              className={`flex flex-col justify-between rounded-lg border p-2.5 text-right transition-all ${
+                                isAlreadyEnabled
+                                  ? 'border-slate-200 bg-slate-100/70 opacity-55 cursor-not-allowed'
+                                  : 'border-slate-200 bg-white hover:border-teal-700 hover:bg-teal-50/30 cursor-pointer'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-bold text-slate-900">
+                                  {item.label}
+                                </span>
+                                <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[9.5px] font-bold text-slate-700">
+                                  {isAlreadyEnabled
+                                    ? 'مفعّل'
+                                    : item.defaultPage === 2
+                                    ? 'ص 2'
+                                    : 'ص 1'}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-[10.5px] leading-snug text-slate-500">
+                                {item.description}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Signature Structure Customizer (2 or 3 signature boxes + editable titles) */}
+                <div className="mt-5 border-t border-slate-100 pt-4">
+                  <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-xs font-bold text-slate-900">
+                        تخصيص هيكل أطر التوقيعات والمصادقة (أسفل التقرير)
+                      </h3>
+                      <p className="mt-0.5 text-[11px] text-slate-500">
+                        اختر توزيع أطر التوقيع (ثلاثي رسمي أو ثنائي) وعدّل تسميات المتدخلين
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onUpdateTemplate((prev) => ({
+                            ...prev,
+                            signatures: [
+                              {
+                                id: 'sig-1',
+                                label: 'توقيع أستاذ(ة) المادة:',
+                                sublabel: 'المنجز(ة) للتقويم وخطة المعالجة',
+                                page2Sublabel:
+                                  'يشهد بصحة النقط ومطابقتها لأوراق التحرير المسلمة',
+                              },
+                              {
+                                id: 'sig-2',
+                                label: 'تأشيرة وملاحظات المفتش(ة) التربوي(ة):',
+                                sublabel: 'التأطير والمراقبة التربوية',
+                                page2Sublabel:
+                                  'ملاحظات حول سلم التنقيط وتوزيع النقط وأثر الدعم',
+                                page2Footer: 'التأشيرة والخاتم: .......................',
+                              },
+                              {
+                                id: 'sig-3',
+                                label: 'تأشيرة السيد(ة) رئيس(ة) المؤسسة:',
+                                sublabel: 'الإدارة التربوية / الحراسة العامة',
+                                page2Sublabel:
+                                  'اطلع عليه وأدرج بسجل المراقبة المستمرة للمؤسسة',
+                              },
+                            ],
+                          }))
+                        }
+                        className={`rounded-md border px-2 py-1 text-[10.5px] font-bold transition-colors cursor-pointer ${
+                          template.signatures.length === 3
+                            ? 'border-teal-700 bg-teal-50 text-teal-900'
+                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        3 توقيعات (أستاذ + مفتش + مدير)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onUpdateTemplate((prev) => ({
+                            ...prev,
+                            signatures: [
+                              {
+                                id: 'sig-1',
+                                label: 'توقيع أستاذ(ة) المادة:',
+                                sublabel: 'المشرف(ة) على المادة وخطة الدعم',
+                                page2Sublabel:
+                                  'يشهد بصحة النقط ومطابقتها لأوراق التحرير المسلمة',
+                              },
+                              {
+                                id: 'sig-2',
+                                label: 'تأشيرة السيد(ة) رئيس(ة) المؤسسة:',
+                                sublabel: 'الإدارة التربوية / رئيس(ة) مجلس القسم',
+                                page2Sublabel:
+                                  'اطلع عليه وأدرج بسجل المراقبة المستمرة للمؤسسة',
+                              },
+                            ],
+                          }))
+                        }
+                        className={`rounded-md border px-2 py-1 text-[10.5px] font-bold transition-colors cursor-pointer ${
+                          template.signatures.length === 2 &&
+                          template.signatures[1]?.label.includes('المؤسسة')
+                            ? 'border-teal-700 bg-teal-50 text-teal-900'
+                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        توقيعان (أستاذ + مدير)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onUpdateTemplate((prev) => ({
+                            ...prev,
+                            signatures: [
+                              {
+                                id: 'sig-1',
+                                label: 'توقيع أستاذ(ة) المادة:',
+                                sublabel: 'المنجز(ة) للتشخيص التربوي وخطة الدعم',
+                                page2Sublabel:
+                                  'يشهد بصحة النقط ومطابقتها لأوراق التحرير المسلمة',
+                              },
+                              {
+                                id: 'sig-2',
+                                label: 'تأشيرة وتوصيات المفتش(ة) التربوي(ة):',
+                                sublabel: 'التأطير والمواكبة التربوية',
+                                page2Sublabel:
+                                  'ملاحظات حول سلم التنقيط وتوزيع النقط وأثر الدعم',
+                                page2Footer: 'التأشيرة والخاتم: .......................',
+                              },
+                            ],
+                          }))
+                        }
+                        className={`rounded-md border px-2 py-1 text-[10.5px] font-bold transition-colors cursor-pointer ${
+                          template.signatures.length === 2 &&
+                          template.signatures[1]?.label.includes('المفتش')
+                            ? 'border-teal-700 bg-teal-50 text-teal-900'
+                            : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        توقيعان (أستاذ + مفتش)
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    {template.signatures.map((sig) => (
+                      <div
+                        key={sig.id}
+                        className="rounded-lg border border-slate-200 bg-slate-50/70 p-2.5 space-y-1.5"
+                      >
                         <input
                           type="text"
-                          value={sec.title}
+                          value={sig.label}
                           onChange={(e) =>
                             onUpdateTemplate((prev) => ({
                               ...prev,
-                              sections: prev.sections.map((s) =>
-                                s.id === sec.id ? { ...s, title: e.target.value } : s
+                              signatures: prev.signatures.map((s) =>
+                                s.id === sig.id ? { ...s, label: e.target.value } : s
                               ),
                             }))
                           }
-                          className={`flex-1 bg-transparent text-xs font-semibold focus:outline-none ${
-                            sec.enabled ? 'text-slate-900' : 'text-slate-400 line-through'
-                          }`}
+                          aria-label="عنوان خانة التوقيع"
+                          className="w-full rounded border border-slate-300 bg-white px-2 py-1 text-xs font-bold text-slate-900"
                         />
-
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            disabled={idx === 0}
-                            onClick={() => moveSection(idx, -1)}
-                            aria-label="تحريك للأعلى"
-                            className="rounded p-1 text-slate-500 hover:bg-white disabled:opacity-30 cursor-pointer"
-                          >
-                            <ArrowUp className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            disabled={idx === template.sections.length - 1}
-                            onClick={() => moveSection(idx, 1)}
-                            aria-label="تحريك للأسفل"
-                            className="rounded p-1 text-slate-500 hover:bg-white disabled:opacity-30 cursor-pointer"
-                          >
-                            <ArrowDown className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
+                        <input
+                          type="text"
+                          value={sig.sublabel || ''}
+                          onChange={(e) =>
+                            onUpdateTemplate((prev) => ({
+                              ...prev,
+                              signatures: prev.signatures.map((s) =>
+                                s.id === sig.id ? { ...s, sublabel: e.target.value } : s
+                              ),
+                            }))
+                          }
+                          aria-label="الوصف الفرعي لخانة التوقيع"
+                          placeholder="الصفة / الملاحظة الفرعية..."
+                          className="w-full rounded border border-slate-200 bg-white px-2 py-1 text-[11px] text-slate-600"
+                        />
                       </div>
                     ))}
                   </div>

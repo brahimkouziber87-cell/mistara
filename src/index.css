@@ -7,6 +7,9 @@
   --font-kufi-ar: "Noto Kufi Arabic", "Cairo", ui-sans-serif, sans-serif;
   --font-tajawal-ar: "Tajawal", "Cairo", ui-sans-serif, sans-serif;
   --font-plex-ar: "IBM Plex Sans Arabic", "Cairo", ui-sans-serif, sans-serif;
+  --font-naskh-ar: "Noto Naskh Arabic", "Amiri", Georgia, serif;
+  --font-almarai-ar: "Almarai", "Cairo", ui-sans-serif, sans-serif;
+  --font-readex-ar: "Readex Pro", "IBM Plex Sans Arabic", ui-sans-serif, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
@@ -70,6 +73,18 @@
 
 .font-tajawal {
   font-family: var(--font-tajawal-ar);
+}
+
+.font-naskh-arabic {
+  font-family: var(--font-naskh-ar);
+}
+
+.font-almarai {
+  font-family: var(--font-almarai-ar);
+}
+
+.font-readex {
+  font-family: var(--font-readex-ar);
 }
 
 .tabular-nums {

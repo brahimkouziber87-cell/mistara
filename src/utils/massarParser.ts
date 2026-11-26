@@ -1869,10 +1869,14 @@ export function exportReportToWordDoc(
               .join('')}
           </table>
         `;
+      case 'gauss_curve_chart':
       case 'chart_distribution':
-        if (template.styleConfig.chartType === 'none') return '';
+        if (sec.type === 'chart_distribution' && template.styleConfig.chartType === 'none') return '';
         return `
           ${sectionTitleHtml(secTitle)}
+          <div style="font-size:10.5px; color:#334155; margin-bottom:5px; font-weight:bold;">
+            منحنى التوزيع الطبيعي (Courbe de Gauss): N(μ = ${formatNum(stats.average)}, σ = ${formatNum(stats.stdDev)}) · الوسيط Me = ${formatNum(stats.median)}/20
+          </div>
           <table style="width:100%; border-collapse:collapse; font-size:11px; margin-bottom:10px;">
             <tr style="${thBgStyle}">
               <th style="border:1px solid #cbd5e1; padding:5px; width:22%;">${esc(labels.bracketColRange)}</th>
@@ -2528,14 +2532,18 @@ export function exportGradebookToExcel(
       passThreshold,
       excellenceThreshold
     );
+    const appreciationLabel = !st.isAbsent && scoreVal === null ? 'بانتظار النقطة' : app.full;
+    const rankCell: string | number = isAbsentOrUnscored
+      ? '—'
+      : rankByStudentId.get(st.id) ?? '—';
     rosterRows.push([
       st.order || idx + 1,
       st.code,
       st.fullName,
       st.isAbsent ? 'غائب' : scoreVal === null ? 'غير مرصود' : Number(scoreVal.toFixed(2)),
       st.isAbsent ? 'غائب' : scoreVal === null ? 'غير مرصود' : scoreVal >= passThreshold ? 'متحكم' : 'غير متحكم',
-      rankByStudentId.get(st.id) || idx + 1,
-      app.full,
+      rankCell,
+      appreciationLabel,
       st.observation || '',
     ]);
   });
@@ -2555,7 +2563,7 @@ export function exportGradebookToExcel(
 
   // Sheet 2: Statistical Summary & Brackets
   const statsRows: (string | number)[][] = [
-    ['الحصيلة الإحصائية وتوزيع فئات التحكم — مذكرة التقويم'],
+    ['الحصيلة الإحصائية وتوزيع فئات التحكم — المذكرة الوزارية 142-08'],
     ['المؤشر الإحصائي', 'القيمة'],
     ['عدد التلاميذ المسجلين', stats.total],
     ['عدد الحاضرين', stats.present],

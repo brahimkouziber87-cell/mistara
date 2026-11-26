@@ -17,6 +17,7 @@ import {
   getStudentWeakItems,
   inferPostSupportStatus,
 } from '../utils/pedagogicalAnalytics';
+import { ReportSheetFrame } from './ReportSheetFrame';
 
 export const DEFAULT_REMEDIATION_CARDS_CONFIG: RemediationCardsConfig = {
   enabledInFullReport: false,
@@ -74,7 +75,6 @@ export function getFilteredRemediationStudents(
   template: ReportTemplateSchema,
   config: RemediationCardsConfig
 ): StudentRecord[] {
-  const passThreshold = template.passThreshold;
   const excellenceThreshold = template.excellenceThreshold;
 
   if (config.targetFilter === 'custom' && config.customSelectedIds) {
@@ -523,7 +523,6 @@ export const IndividualRemediationCardsSheet: React.FC<
   const config = getRemediationCardsConfig(template, metadata);
   const accent = template.styleConfig.accentColor || '#0f766e';
   const secondaryAccent = template.styleConfig.secondaryAccent || '#1e3a8a';
-  const isDoubleBorder = template.styleConfig.borderStyle === 'official-double';
   const fontClass = getReportFontClass(template.styleConfig.fontFamily);
 
   const rankMap = React.useMemo(() => {
@@ -643,17 +642,12 @@ export const IndividualRemediationCardsSheet: React.FC<
         const isTwoPerSheet = cardsPerPage === 2;
 
         return (
-          <article
+          <ReportSheetFrame
             key={`remediation-cards-sheet-${pageIdx}`}
+            styleConfig={template.styleConfig}
             dir={labels.dir}
-            className={`report-sheet mx-auto ${
-              currentPageNumber > 1 ? 'mt-8 print:mt-0' : ''
-            } flex w-[210mm] flex-col justify-between overflow-hidden bg-white p-[6.5mm] text-slate-900 shadow-sm print:shadow-none ${fontClass}`}
-            style={{
-              border: template.styleConfig.showOuterFrame
-                ? `${isDoubleBorder ? '4px double' : '1px solid'} ${accent}`
-                : undefined,
-            }}
+            className={`${currentPageNumber > 1 ? 'mt-8 print:mt-0' : ''} ${fontClass}`}
+            innerPaddingClass="p-[3.2mm]"
           >
             {/* Sheet Top Header */}
             <header
@@ -1064,7 +1058,7 @@ export const IndividualRemediationCardsSheet: React.FC<
                 {labels.pageOfTotal(currentPageNumber, computedTotalPages)}
               </span>
             </footer>
-          </article>
+          </ReportSheetFrame>
         );
       })}
     </>

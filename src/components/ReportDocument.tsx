@@ -37,6 +37,7 @@ import {
   LongitudinalSummaryReportSheet,
   PostRemediationImpactReportSheet,
 } from './InspectionPortfolioSheets';
+import { ReportSheetFrame } from './ReportSheetFrame';
 
 export type { PreviewDocumentMode };
 
@@ -223,6 +224,343 @@ const BarChartSvg: React.FC<{
   );
 };
 
+function reportNormalPdf(x: number, mean: number, sigma: number): number {
+  const s = Math.max(0.65, sigma);
+  const z = (x - mean) / s;
+  return (1 / (s * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * z * z);
+}
+
+const GaussDistributionReportSvg: React.FC<{
+  students: StudentRecord[];
+  stats: ComputedStats;
+  passThreshold: number;
+  accentColor: string;
+  secondaryAccent: string;
+  labels: LocalizedReportLabels;
+  withSideLegend?: boolean;
+}> = ({
+  students,
+  stats,
+  passThreshold,
+  accentColor,
+  secondaryAccent,
+  labels,
+  withSideLegend = true,
+}) => {
+  const presentScores = students
+    .filter((s) => !s.isAbsent && typeof s.score === 'number' && Number.isFinite(s.score))
+    .map((s) => Math.min(20, Math.max(0, s.score as number)));
+  const n = Math.max(1, presentScores.length);
+  const mean = stats.present > 0 ? stats.average : 10;
+  const sigma = stats.present > 0 ? Math.max(0.75, stats.stdDev) : 2.5;
+  const refMean = 12;
+  const refSigma = 2.6;
+
+  // 10 intervals of width 2: [0-2[, [2-4[, ..., [18-20]
+  const binWidth = 2;
+  const bins = Array.from({ length: 10 }, (_, idx) => {
+    const min = idx * 2;
+    const max = idx === 9 ? 20 : min + 2;
+    const center = min + 1;
+    const isLast = idx === 9;
+    const count = presentScores.filter((sc) =>
+      isLast ? sc >= min && sc <= max : sc >= min && sc < max
+    ).length;
+    const pct = (count / n) * 100;
+    const color =
+      center < 5
+        ? '#dc2626'
+        : center < 10
+        ? '#ea580c'
+        : center < 14
+        ? '#2563eb'
+        : center < 18
+        ? '#0d9488'
+        : '#16a34a';
+    return { idx, min, max, center, count, pct, color };
+  });
+
+  // Sample continuous curves at 41 points (step 0.5 from 0 to 20)
+  const curveSamples = Array.from({ length: 41 }, (_, i) => {
+    const x = i * 0.5;
+    const classExpectedCount = n * reportNormalPdf(x, mean, sigma) * binWidth;
+    const refExpectedCount = n * reportNormalPdf(x, refMean, refSigma) * binWidth;
+    return { x, classExpectedCount, refExpectedCount };
+  });
+
+  const maxY = Math.max(
+    1,
+    ...bins.map((b) => b.count),
+    ...curveSamples.map((c) => Math.max(c.classExpectedCount, c.refExpectedCount))
+  ) * 1.15;
+
+  const svgW = 390;
+  const svgH = 136;
+  const padL = 24;
+  const padR = 12;
+  const padT = 16;
+  const padB = 22;
+  const plotW = svgW - padL - padR;
+  const plotH = svgH - padT - padB;
+
+  const toX = (score: number) => padL + (Math.min(20, Math.max(0, score)) / 20) * plotW;
+  const toY = (val: number) => padT + plotH - (Math.min(maxY, Math.max(0, val)) / maxY) * plotH;
+
+  const classLinePoints = curveSamples
+    .map((pt) => `${toX(pt.x).toFixed(1)},${toY(pt.classExpectedCount).toFixed(1)}`)
+    .join(' ');
+  const classAreaPoints = `${toX(0).toFixed(1)},${(padT + plotH).toFixed(1)} ${classLinePoints} ${toX(
+    20
+  ).toFixed(1)},${(padT + plotH).toFixed(1)}`;
+  const refLinePoints = curveSamples
+    .map((pt) => `${toX(pt.x).toFixed(1)},${toY(pt.refExpectedCount).toFixed(1)}`)
+    .join(' ');
+
+  const sigmaLow = Math.max(0, mean - stats.stdDev);
+  const sigmaHigh = Math.min(20, mean + stats.stdDev);
+  const withinSigmaCount = presentScores.filter(
+    (sc) => sc >= sigmaLow - 1e-6 && sc <= sigmaHigh + 1e-6
+  ).length;
+  const withinSigmaPct = stats.present > 0 ? (withinSigmaCount / n) * 100 : 0;
+
+  const segments = stats.bracketsBreakdown.map((item, idx) => {
+    const color = item.bracket.colorHex || BRACKET_PALETTE[idx % BRACKET_PALETTE.length];
+    const pct = stats.present > 0 ? (item.count / stats.present) * 100 : 0;
+    return { item, color, pct };
+  });
+
+  return (
+    <div
+      className={`flex flex-col gap-2.5 ${
+        withSideLegend ? 'sm:flex-row sm:items-center sm:justify-between' : ''
+      }`}
+    >
+      <div className={withSideLegend ? 'w-full sm:w-[58%] shrink-0' : 'w-full'} dir="ltr">
+        <svg
+          viewBox={`0 0 ${svgW} ${svgH}`}
+          className="h-[134px] w-full overflow-visible rounded border border-slate-200/90 bg-slate-50/40"
+        >
+          {/* Horizontal grid lines */}
+          {[0.25, 0.5, 0.75, 1].map((ratio) => {
+            const y = padT + plotH * (1 - ratio);
+            return (
+              <line
+                key={ratio}
+                x1={padL}
+                y1={y}
+                x2={padL + plotW}
+                y2={y}
+                stroke="#e2e8f0"
+                strokeWidth={0.8}
+                strokeDasharray="2 2"
+              />
+            );
+          })}
+
+          {/* 1-Sigma Shaded Band [μ - σ, μ + σ] */}
+          {stats.stdDev > 0.1 && (
+            <rect
+              x={toX(sigmaLow)}
+              y={padT}
+              width={Math.max(2, toX(sigmaHigh) - toX(sigmaLow))}
+              height={plotH}
+              fill={secondaryAccent}
+              fillOpacity={0.09}
+            />
+          )}
+
+          {/* Observed Histogram Bars */}
+          {bins.map((b) => {
+            const x1 = toX(b.min) + 1.5;
+            const x2 = toX(b.max) - 1.5;
+            const bw = Math.max(4, x2 - x1);
+            const y = toY(b.count);
+            const bh = Math.max(1, padT + plotH - y);
+            return (
+              <g key={b.idx}>
+                <rect
+                  x={x1}
+                  y={y}
+                  width={bw}
+                  height={bh}
+                  rx={1.5}
+                  fill={b.color}
+                  fillOpacity={0.74}
+                />
+                {b.count > 0 && (
+                  <text
+                    x={x1 + bw / 2}
+                    y={Math.max(10, y - 2)}
+                    textAnchor="middle"
+                    fontSize="7.2"
+                    fontWeight="700"
+                    fill="#334155"
+                  >
+                    {b.count}
+                  </text>
+                )}
+              </g>
+            );
+          })}
+
+          {/* Reference Benchmark Gaussian Curve N(12, 2.6) */}
+          <polyline
+            fill="none"
+            stroke="#6366f1"
+            strokeWidth={1.3}
+            strokeDasharray="3.5 2.5"
+            points={refLinePoints}
+          />
+
+          {/* Class Fitted Gaussian Normal Curve Area & Line */}
+          <polygon fill={accentColor} fillOpacity={0.14} points={classAreaPoints} />
+          <polyline
+            fill="none"
+            stroke={accentColor}
+            strokeWidth={2.2}
+            points={classLinePoints}
+          />
+
+          {/* Pass Threshold Vertical Line (10/20) */}
+          <line
+            x1={toX(passThreshold)}
+            y1={padT - 2}
+            x2={toX(passThreshold)}
+            y2={padT + plotH}
+            stroke="#dc2626"
+            strokeWidth={1.3}
+            strokeDasharray="3 2"
+          />
+          <text
+            x={toX(passThreshold)}
+            y={padT - 4}
+            textAnchor="middle"
+            fontSize="7.2"
+            fontWeight="700"
+            fill="#b91c1c"
+          >
+            عتبة {passThreshold}
+          </text>
+
+          {/* Class Mean Vertical Line (μ) */}
+          <line
+            x1={toX(mean)}
+            y1={padT - 2}
+            x2={toX(mean)}
+            y2={padT + plotH}
+            stroke={secondaryAccent}
+            strokeWidth={1.6}
+          />
+          <text
+            x={Math.min(svgW - 22, Math.max(24, toX(mean) + (mean >= passThreshold ? 14 : -14)))}
+            y={padT - 4}
+            textAnchor="middle"
+            fontSize="7.5"
+            fontWeight="800"
+            fill={secondaryAccent}
+          >
+            μ={mean.toFixed(2)}
+          </text>
+
+          {/* X-Axis Baseline & Ticks */}
+          <line
+            x1={padL}
+            y1={padT + plotH}
+            x2={padL + plotW}
+            y2={padT + plotH}
+            stroke="#64748b"
+            strokeWidth={1}
+          />
+          {[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20].map((tick) => {
+            const tx = toX(tick);
+            return (
+              <g key={tick}>
+                <line
+                  x1={tx}
+                  y1={padT + plotH}
+                  x2={tx}
+                  y2={padT + plotH + 3}
+                  stroke="#64748b"
+                  strokeWidth={0.9}
+                />
+                <text
+                  x={tx}
+                  y={padT + plotH + 11}
+                  textAnchor="middle"
+                  fontSize="7.2"
+                  fontWeight="700"
+                  fill="#334155"
+                >
+                  {tick}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Bottom Mini Legend inside SVG */}
+          <text
+            x={padL + 2}
+            y={svgH - 2}
+            fontSize="6.8"
+            fontWeight="700"
+            fill={accentColor}
+          >
+            — منحنى غوص الفعلي N(μ={mean.toFixed(2)}, σ={stats.stdDev.toFixed(2)})
+          </text>
+          <text
+            x={padL + plotW}
+            y={svgH - 2}
+            textAnchor="end"
+            fontSize="6.8"
+            fontWeight="600"
+            fill="#4f46e5"
+          >
+            --- المنحنى المرجعي 142-08 (μ=12) · [μ±σ]: {withinSigmaPct.toFixed(0)}%
+          </text>
+        </svg>
+      </div>
+
+      {withSideLegend && (
+        <div className="flex-1 min-w-0 space-y-1 text-[10px]">
+          {[...segments].reverse().map((seg) => (
+            <div
+              key={seg.item.bracket.id}
+              className="flex items-center justify-between gap-1.5 rounded border border-slate-200 bg-slate-50/70 px-2 py-0.5 whitespace-nowrap"
+            >
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span
+                  className="inline-block h-2.5 w-2.5 shrink-0 rounded-sm"
+                  style={{ backgroundColor: seg.color }}
+                />
+                <span className="truncate font-semibold text-slate-800">
+                  {translateBracketAppreciation(seg.item.bracket.appreciation, labels.lang)}
+                </span>
+                <span
+                  className="font-mono text-[9px] tracking-tighter text-slate-500 shrink-0"
+                  dir="ltr"
+                >
+                  {seg.item.bracket.label}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 font-mono tabular-nums shrink-0">
+                <span className="font-semibold text-slate-700">
+                  {seg.item.count} {labels.studentShort}
+                </span>
+                <span
+                  className="rounded px-1.5 py-0.5 text-[9px] font-bold text-white"
+                  style={{ backgroundColor: seg.color }}
+                >
+                  {seg.pct.toFixed(1)}%
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const ReportDocument: React.FC<ReportDocumentProps> = ({
   template,
   metadata,
@@ -254,7 +592,6 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
       ? { backgroundColor: `${accent}14`, color: accent }
       : undefined;
   const isBannerStyle = template.styleConfig.borderStyle === 'section-banners';
-  const isDoubleBorder = template.styleConfig.borderStyle === 'official-double';
   const docimology = computeDocimologicalSummary(
     stats,
     template.passThreshold,
@@ -449,20 +786,24 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
     if (bStyle === 'section-banners') {
       return (
         <div
-          className="rounded-t-md px-3 py-1 text-[11px] font-bold text-white"
-          style={{ backgroundColor: accent }}
+          className="flex items-center justify-between rounded-t-[4px] px-3 py-1 text-[10.5px] font-bold tracking-tight text-white"
+          style={{
+            background: `linear-gradient(to left, ${accent} 0%, ${secondaryAccent} 100%)`,
+            borderBottom: `1.5px solid ${secondaryAccent}`,
+          }}
         >
-          {title}
+          <span>{title}</span>
+          <span aria-hidden="true" className="h-1.5 w-1.5 rotate-45 bg-white/55" />
         </div>
       );
     }
     if (bStyle === 'official-double') {
       return (
         <div
-          className="mb-1.5 border-y-2 px-2.5 py-1 text-[11px] font-extrabold"
+          className="mb-1.5 border-y-2 px-2.5 py-1 text-[10.5px] font-extrabold"
           style={{
             borderColor: accent,
-            backgroundColor: `${accent}10`,
+            backgroundColor: `${accent}0f`,
             color: accent,
           }}
         >
@@ -473,24 +814,36 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
     if (bStyle === 'classic-grid') {
       return (
         <div
-          className="mb-1 rounded-xs border px-2.5 py-1 text-[11px] font-bold"
+          className="mb-1 flex items-center justify-between rounded-[3px] border px-2.5 py-1 text-[10.5px] font-bold"
           style={{
-            borderColor: accent,
-            borderRightWidth: '4px',
-            backgroundColor: '#f8fafc',
+            borderColor: `${accent}60`,
+            backgroundColor: `${accent}0b`,
             color: accent,
           }}
         >
-          {title}
+          <span>{title}</span>
+          <span
+            aria-hidden="true"
+            className="h-1 w-8 rounded-full"
+            style={{ backgroundColor: `${secondaryAccent}80` }}
+          />
         </div>
       );
     }
     return (
       <div
-        className="mb-1.5 border-b-2 pb-1 text-xs font-bold"
-        style={{ borderColor: accent, color: accent }}
+        className="mb-1.5 flex items-center justify-between pb-1 text-[11px] font-bold"
+        style={{
+          color: accent,
+          borderBottom: `1.5px solid ${accent}`,
+        }}
       >
-        {title}
+        <span>{title}</span>
+        <span
+          aria-hidden="true"
+          className="h-[3px] w-10 rounded-full"
+          style={{ backgroundColor: secondaryAccent }}
+        />
       </div>
     );
   };
@@ -525,28 +878,32 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
         return (
           <div
             key={sec.id}
-            className="avoid-break overflow-hidden rounded-md border border-slate-300 bg-slate-50/70 text-[10px]"
+            className="avoid-break overflow-hidden rounded-[4px] border bg-white text-[10px]"
+            style={{ borderColor: `${accent}42` }}
           >
-            <div className="grid grid-cols-4 divide-x rtl:divide-x-reverse divide-slate-200 border-b border-slate-200">
+            <div
+              className="grid grid-cols-4 divide-x rtl:divide-x-reverse divide-slate-200 border-b"
+              style={{ borderColor: `${accent}26`, backgroundColor: `${accent}07` }}
+            >
               <div className="px-2 py-1 text-center">
-                <div className="text-[9px] font-bold" style={{ color: accent }}>
+                <div className="text-[8.5px] font-bold tracking-tight" style={{ color: accent }}>
                   {labels.metaClassLevel}
                 </div>
-                <div className="font-semibold text-slate-900 truncate">
+                <div className="font-bold text-slate-900 truncate">
                   {metadata.className || '—'}
                   {metadata.level ? ` · ${metadata.level}` : ''}
                 </div>
               </div>
               <div className="px-2 py-1 text-center">
-                <div className="text-[9px] font-bold" style={{ color: accent }}>
+                <div className="text-[8.5px] font-bold tracking-tight" style={{ color: accent }}>
                   {labels.metaTeacher}
                 </div>
-                <div className="font-semibold text-slate-900 truncate">
+                <div className="font-bold text-slate-900 truncate">
                   {metadata.teacherName || '—'}
                 </div>
               </div>
               <div className="px-2 py-1 text-center">
-                <div className="text-[9px] font-bold" style={{ color: accent }}>
+                <div className="text-[8.5px] font-bold tracking-tight" style={{ color: accent }}>
                   {labels.metaExamDate}
                 </div>
                 <div className="font-mono font-semibold tabular-nums text-slate-900">
@@ -554,7 +911,7 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                 </div>
               </div>
               <div className="px-2 py-1 text-center">
-                <div className="text-[9px] font-bold" style={{ color: accent }}>
+                <div className="text-[8.5px] font-bold tracking-tight" style={{ color: accent }}>
                   {labels.metaCorrectionDate}
                 </div>
                 <div className="font-mono font-semibold tabular-nums text-slate-900">
@@ -562,9 +919,9 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-4 divide-x rtl:divide-x-reverse divide-slate-200">
+            <div className="grid grid-cols-4 divide-x rtl:divide-x-reverse divide-slate-200 bg-white">
               <div className="px-2 py-1 text-center">
-                <div className="text-[9px] font-bold" style={{ color: accent }}>
+                <div className="text-[8.5px] font-bold tracking-tight" style={{ color: secondaryAccent }}>
                   {labels.metaDuration}
                 </div>
                 <div className="font-mono font-semibold tabular-nums text-slate-900">
@@ -572,7 +929,7 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                 </div>
               </div>
               <div className="px-2 py-1 text-center">
-                <div className="text-[9px] font-bold" style={{ color: accent }}>
+                <div className="text-[8.5px] font-bold tracking-tight" style={{ color: secondaryAccent }}>
                   {labels.metaCoefficient}
                 </div>
                 <div
@@ -583,18 +940,18 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                 </div>
               </div>
               <div className="px-2 py-1 text-center">
-                <div className="text-[9px] font-bold" style={{ color: accent }}>
+                <div className="text-[8.5px] font-bold tracking-tight" style={{ color: secondaryAccent }}>
                   {labels.metaClassStructure}
                 </div>
                 <div className="font-mono font-semibold tabular-nums text-slate-900">
                   {stats.total} {labels.studentShort} ({stats.present} {labels.presentShort} · {stats.absent} {labels.absentShort})
                 </div>
               </div>
-              <div className="px-2 py-1 text-center">
-                <div className="text-[9px] font-bold" style={{ color: accent }}>
+              <div className="px-2 py-1 text-center" style={{ backgroundColor: `${secondaryAccent}0c` }}>
+                <div className="text-[8.5px] font-bold tracking-tight" style={{ color: secondaryAccent }}>
                   {labels.metaPassAvg}
                 </div>
-                <div className="font-mono font-bold tabular-nums text-emerald-700">
+                <div className="font-mono font-extrabold tabular-nums text-emerald-700">
                   {stats.passRate.toFixed(0)}% ({stats.average.toFixed(2)}/20)
                 </div>
               </div>
@@ -606,7 +963,12 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
         return (
           <div key={sec.id} className="avoid-break">
             {renderSectionBanner(secTitle)}
-            <div className="rounded-b-md border border-t-0 border-slate-300 bg-white px-3 py-1.5 text-[10px] leading-snug text-slate-800">
+            <div
+              className={`${
+                isBannerStyle ? 'rounded-b-[4px] border-t-0' : 'rounded-[4px]'
+              } border bg-white px-3 py-1.5 text-[10px] leading-snug text-slate-800`}
+              style={{ borderColor: `${accent}35` }}
+            >
               <p className="font-bold text-slate-900">
                 <span style={{ color: accent }}>{labels.targetedCompetenciesLabel} </span>
                 {metadata.examContent || labels.defaultExamTopic}
@@ -636,59 +998,65 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
         return (
           <div key={sec.id} className="avoid-break">
             {renderSectionBanner(secTitle)}
-            <div className={isBannerStyle ? 'border border-t-0 border-slate-300 p-1.5 rounded-b-md bg-white' : ''}>
+            <div
+              className={isBannerStyle ? 'border border-t-0 p-1.5 rounded-b-[4px] bg-white' : ''}
+              style={isBannerStyle ? { borderColor: `${accent}35` } : undefined}
+            >
               <table className="w-full border-collapse text-center text-[10px]">
                 <thead>
                   <tr className="bg-slate-100 font-bold text-slate-800" style={tableHeaderStyle}>
-                    <th className="border border-slate-300 px-1.5 py-1">{labels.kpiEnrolled}</th>
-                    <th className="border border-slate-300 px-1.5 py-1">{labels.kpiPresent}</th>
-                    <th className="border border-slate-300 px-1.5 py-1">{labels.kpiAbsent}</th>
-                    <th className="border border-slate-300 px-1.5 py-1">{labels.kpiMaxScore}</th>
-                    <th className="border border-slate-300 px-1.5 py-1">{labels.kpiMinScore}</th>
-                    <th className="border border-slate-300 px-1.5 py-1">{labels.kpiAverage}</th>
-                    <th className="border border-slate-300 px-1.5 py-1">{labels.kpiMedian}</th>
-                    <th className="border border-slate-300 px-1.5 py-1">{labels.kpiStdDev}</th>
-                    <th className="border border-slate-300 px-1.5 py-1">
+                    <th className="border border-slate-300/90 px-1.5 py-1">{labels.kpiEnrolled}</th>
+                    <th className="border border-slate-300/90 px-1.5 py-1">{labels.kpiPresent}</th>
+                    <th className="border border-slate-300/90 px-1.5 py-1">{labels.kpiAbsent}</th>
+                    <th className="border border-slate-300/90 px-1.5 py-1">{labels.kpiMaxScore}</th>
+                    <th className="border border-slate-300/90 px-1.5 py-1">{labels.kpiMinScore}</th>
+                    <th className="border border-slate-300/90 px-1.5 py-1">{labels.kpiAverage}</th>
+                    <th className="border border-slate-300/90 px-1.5 py-1">{labels.kpiMedian}</th>
+                    <th className="border border-slate-300/90 px-1.5 py-1">{labels.kpiStdDev}</th>
+                    <th className="border border-slate-300/90 px-1.5 py-1">
                       {labels.kpiMastered} (≥{template.passThreshold})
                     </th>
-                    <th className="border border-slate-300 px-1.5 py-1">
+                    <th className="border border-slate-300/90 px-1.5 py-1">
                       {labels.kpiBelowPass} (&lt;{template.passThreshold})
                     </th>
                   </tr>
                 </thead>
                 <tbody className="font-mono font-bold tabular-nums">
                   <tr>
-                    <td className="border border-slate-300 px-1.5 py-1 text-slate-900">
+                    <td className="border border-slate-300/90 px-1.5 py-1 text-slate-900">
                       {stats.total}
                     </td>
-                    <td className="border border-slate-300 px-1.5 py-1 text-slate-900">
+                    <td className="border border-slate-300/90 px-1.5 py-1 text-slate-900">
                       {stats.present}
                     </td>
-                    <td className="border border-slate-300 px-1.5 py-1 text-red-700">
+                    <td className="border border-slate-300/90 px-1.5 py-1 text-red-700">
                       {stats.absent}
                     </td>
-                    <td className="border border-slate-300 px-1.5 py-1 text-emerald-700">
+                    <td className="border border-slate-300/90 px-1.5 py-1 text-emerald-700">
                       {Number.isInteger(stats.maxScore) ? stats.maxScore.toFixed(0) : stats.maxScore.toFixed(2)} / 20
                     </td>
-                    <td className="border border-slate-300 px-1.5 py-1 text-red-700">
+                    <td className="border border-slate-300/90 px-1.5 py-1 text-red-700">
                       {Number.isInteger(stats.minScore) ? stats.minScore.toFixed(0) : stats.minScore.toFixed(2)} / 20
                     </td>
                     <td
-                      className="border border-slate-300 px-1.5 py-1"
-                      style={{ color: accent }}
+                      className="border border-slate-300/90 px-1.5 py-1 font-extrabold"
+                      style={{ color: accent, backgroundColor: `${accent}10` }}
                     >
                       {stats.average.toFixed(2)} / 20
                     </td>
-                    <td className="border border-slate-300 px-1.5 py-1 text-indigo-700">
+                    <td
+                      className="border border-slate-300/90 px-1.5 py-1"
+                      style={{ color: secondaryAccent }}
+                    >
                       {stats.median.toFixed(2)} / 20
                     </td>
-                    <td className="border border-slate-300 px-1.5 py-1 text-slate-800">
+                    <td className="border border-slate-300/90 px-1.5 py-1 text-slate-800">
                       {stats.stdDev.toFixed(2)}
                     </td>
-                    <td className="border border-slate-300 bg-emerald-50/70 px-1.5 py-1 text-emerald-800">
+                    <td className="border border-slate-300/90 bg-emerald-50/75 px-1.5 py-1 text-emerald-800">
                       {stats.passed} ({stats.passRate.toFixed(0)}%)
                     </td>
-                    <td className="border border-slate-300 bg-red-50/70 px-1.5 py-1 text-red-700">
+                    <td className="border border-slate-300/90 bg-red-50/75 px-1.5 py-1 text-red-700">
                       {stats.failed} ({failPct.toFixed(0)}%)
                     </td>
                   </tr>
@@ -738,17 +1106,36 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
         }
         return (
           <div key={sec.id} className="avoid-break">
-            <div className="rounded border border-slate-300 bg-white px-3 py-1.5">
-              <div className="mb-1.5 flex items-center justify-between gap-2 border-b border-slate-200 pb-1">
+            <div
+              className="rounded-[4px] border bg-white px-3 py-1.5"
+              style={{ borderColor: `${accent}35` }}
+            >
+              <div
+                className="mb-1.5 flex items-center justify-between gap-2 border-b pb-1"
+                style={{ borderColor: `${accent}25` }}
+              >
                 <h3 className="text-[10.5px] font-bold" style={{ color: accent }}>
                   {labels.chartSectionTitle}
                 </h3>
-                <span className="rounded bg-slate-100 px-2 py-0.5 text-[9px] font-semibold text-slate-700">
+                <span
+                  className="text-[9px] font-semibold"
+                  style={{ color: secondaryAccent }}
+                >
                   {docimology.homogeneityLabel}
                 </span>
               </div>
-              {template.styleConfig.chartType === 'bar' ||
-              template.styleConfig.chartType === 'horizontal-bar' ? (
+              {template.styleConfig.chartType === 'gauss' ? (
+                <GaussDistributionReportSvg
+                  students={students}
+                  stats={stats}
+                  passThreshold={template.passThreshold}
+                  accentColor={accent}
+                  secondaryAccent={secondaryAccent}
+                  labels={labels}
+                  withSideLegend
+                />
+              ) : template.styleConfig.chartType === 'bar' ||
+                template.styleConfig.chartType === 'horizontal-bar' ? (
                 <BarChartSvg
                   stats={stats}
                   horizontal={template.styleConfig.chartType === 'horizontal-bar'}
@@ -762,6 +1149,27 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
           </div>
         );
       }
+
+      case 'gauss_curve_chart':
+        return (
+          <div key={sec.id} className="avoid-break">
+            {renderSectionBanner(secTitle)}
+            <div
+              className="rounded border bg-white px-3 py-1.5"
+              style={{ borderColor: `${accent}35` }}
+            >
+              <GaussDistributionReportSvg
+                students={students}
+                stats={stats}
+                passThreshold={template.passThreshold}
+                accentColor={accent}
+                secondaryAccent={secondaryAccent}
+                labels={labels}
+                withSideLegend
+              />
+            </div>
+          </div>
+        );
 
       case 'brackets_table':
         return (
@@ -804,7 +1212,17 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
           <div key={sec.id} className="avoid-break">
             {renderSectionBanner(secTitle)}
             <div className="rounded border border-slate-200 bg-white p-3">
-              {template.styleConfig.chartType === 'donut' ? (
+              {template.styleConfig.chartType === 'gauss' ? (
+                <GaussDistributionReportSvg
+                  students={students}
+                  stats={stats}
+                  passThreshold={template.passThreshold}
+                  accentColor={accent}
+                  secondaryAccent={secondaryAccent}
+                  labels={labels}
+                  withSideLegend
+                />
+              ) : template.styleConfig.chartType === 'donut' ? (
                 <DonutDistributionSvg stats={stats} accentColor={accent} labels={labels} />
               ) : (
                 <BarChartSvg
@@ -869,12 +1287,19 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
             <div
               className={`space-y-1.5 bg-white p-2 text-[10px] leading-snug ${
                 isBannerStyle
-                  ? 'rounded-b-md border border-t-0 border-slate-300'
-                  : 'rounded border border-slate-300'
+                  ? 'rounded-b-[4px] border border-t-0'
+                  : 'rounded-[4px] border'
               }`}
+              style={{ borderColor: `${accent}35` }}
             >
               {template.pedagogicalContent.generalObservation?.trim() && (
-                <div className="rounded border border-slate-200 bg-slate-50/80 px-2.5 py-1 text-[10px] text-slate-800">
+                <div
+                  className="rounded-[3px] border px-2.5 py-1 text-[10px] text-slate-800"
+                  style={{
+                    borderColor: `${accent}30`,
+                    backgroundColor: `${accent}08`,
+                  }}
+                >
                   <span className="font-bold" style={{ color: accent }}>
                     {labels.generalObsLabel}{' '}
                   </span>
@@ -893,11 +1318,11 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                   }`}
                 >
                   {hasStrengths && (
-                    <div className="rounded border border-emerald-200/80 bg-emerald-50/30 p-1.5">
-                      <h4 className="font-bold text-emerald-800">
+                    <div className="rounded-[3px] border border-emerald-200/90 bg-emerald-50/25 p-1.5">
+                      <h4 className="border-b border-emerald-200/70 pb-0.5 font-bold text-emerald-800">
                         {labels.strengthsTitle}
                       </h4>
-                      <ul className="mt-0.5 list-disc space-y-0.5 ps-4 text-slate-800">
+                      <ul className="mt-1 list-disc space-y-0.5 ps-4 text-slate-800">
                         {template.pedagogicalContent.strengths.map((s, i) => (
                           <li key={i}>{s}</li>
                         ))}
@@ -906,11 +1331,11 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                   )}
 
                   {hasWeaknesses && (
-                    <div className="rounded border border-red-200/80 bg-red-50/30 p-1.5">
-                      <h4 className="font-bold text-red-700">
+                    <div className="rounded-[3px] border border-red-200/90 bg-red-50/25 p-1.5">
+                      <h4 className="border-b border-red-200/70 pb-0.5 font-bold text-red-700">
                         {labels.weaknessesTitle}
                       </h4>
-                      <ul className="mt-0.5 list-disc space-y-0.5 ps-4 text-slate-800">
+                      <ul className="mt-1 list-disc space-y-0.5 ps-4 text-slate-800">
                         {template.pedagogicalContent.weaknesses.map((w, i) => (
                           <li key={i}>{w}</li>
                         ))}
@@ -919,11 +1344,20 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                   )}
 
                   {hasRemediation && (
-                    <div className="rounded border border-blue-200/80 bg-blue-50/25 p-1.5">
-                      <h4 className="font-bold" style={{ color: accent }}>
+                    <div
+                      className="rounded-[3px] border p-1.5"
+                      style={{
+                        borderColor: `${accent}35`,
+                        backgroundColor: `${accent}06`,
+                      }}
+                    >
+                      <h4
+                        className="border-b pb-0.5 font-bold"
+                        style={{ color: accent, borderColor: `${accent}25` }}
+                      >
                         {labels.remediationBulletsTitle}
                       </h4>
-                      <ul className="mt-0.5 list-disc space-y-0.5 ps-4 text-slate-800">
+                      <ul className="mt-1 list-disc space-y-0.5 ps-4 text-slate-800">
                         {remediationItems.map((item, i) => (
                           <li key={i}>{item}</li>
                         ))}
@@ -935,18 +1369,26 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
 
               {(template.pedagogicalContent.remediationNotes?.trim() ||
                 metadata.remediationFormat?.trim()) && (
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded border border-teal-200 bg-teal-50/50 px-2.5 py-1 text-[9.5px] leading-snug text-slate-800">
+                <div
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-[3px] border px-2.5 py-1 text-[9.5px] leading-snug text-slate-800"
+                  style={{
+                    borderColor: `${secondaryAccent}40`,
+                    backgroundColor: `${secondaryAccent}0c`,
+                  }}
+                >
                   {template.pedagogicalContent.remediationNotes?.trim() && (
                     <div>
-                      <span className="font-bold text-teal-900">
+                      <span className="font-bold" style={{ color: secondaryAccent }}>
                         {labels.remediationNotesLabel}{' '}
                       </span>
                       <span>{template.pedagogicalContent.remediationNotes.trim()}</span>
                     </div>
                   )}
                   {metadata.remediationFormat?.trim() && (
-                    <div className="font-semibold text-teal-950">
-                      <span className="font-bold">{labels.remediationFormatLabel} </span>
+                    <div className="font-semibold text-slate-900">
+                      <span className="font-bold" style={{ color: secondaryAccent }}>
+                        {labels.remediationFormatLabel}{' '}
+                      </span>
                       {metadata.remediationFormat.trim()}
                     </div>
                   )}
@@ -1100,7 +1542,13 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
               return (
                 <div
                   key={sig.id}
-                  className="flex min-h-[54px] flex-col justify-between rounded border border-slate-300 bg-slate-50/40 px-2 py-1.5"
+                  className="flex min-h-[54px] flex-col justify-between rounded-[4px] border bg-white px-2 py-1.5"
+                  style={{
+                    borderColor: `${accent}35`,
+                    borderTopWidth: '2px',
+                    borderTopColor: accent,
+                    backgroundColor: `${accent}04`,
+                  }}
                 >
                   <div>
                     <div className="font-bold text-slate-800" style={{ color: accent }}>
@@ -1164,33 +1612,52 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
   const renderPage1Header = () => {
     if (template.headerConfig.layout === 'centered') {
       return (
-        <header className="border-b-2 pb-1.5 text-center" style={{ borderColor: accent }}>
-          <p className="text-xs font-bold text-slate-800">{countryLineDisplay}</p>
-          <p className="text-[10.5px] font-semibold text-slate-700">{ministryLineDisplay}</p>
-          <p className="text-[10px] text-slate-600">
-            {[metadata.academy, metadata.directorate, metadata.school].filter(Boolean).join(' · ') || '—'}
-          </p>
-          <h1 className="mt-1 text-base font-extrabold" style={{ color: accent }}>
-            {reportTitleDisplay} ({metadata.examNumber} — {metadata.semester})
-          </h1>
-          {reportSubtitleDisplay && (
-            <p className="mt-0.5 text-[9.5px] text-slate-600">
-              {reportSubtitleDisplay}
+        <header className="space-y-1.5 text-center">
+          <div
+            className="rounded-[4px] px-3 py-1.5"
+            style={{
+              background: `linear-gradient(180deg, ${accent}0c 0%, transparent 100%)`,
+              borderBottom: `2px solid ${accent}`,
+            }}
+          >
+            <p className="text-xs font-extrabold text-slate-900">{countryLineDisplay}</p>
+            <p className="text-[10.5px] font-bold text-slate-800">{ministryLineDisplay}</p>
+            <p className="text-[10px] text-slate-600">
+              {[metadata.academy, metadata.directorate, metadata.school].filter(Boolean).join(' · ') || '—'}
             </p>
-          )}
+          </div>
+          <div
+            className="rounded-[4px] border-y px-3 py-1"
+            style={{
+              borderColor: `${accent}45`,
+              backgroundColor: `${accent}0a`,
+            }}
+          >
+            <h1 className="text-[15.5px] font-extrabold tracking-tight" style={{ color: accent }}>
+              {reportTitleDisplay} ({metadata.examNumber} — {metadata.semester})
+            </h1>
+            {reportSubtitleDisplay && (
+              <p className="mt-0.5 text-[9.5px] font-medium text-slate-600">
+                {reportSubtitleDisplay}
+              </p>
+            )}
+          </div>
         </header>
       );
     }
 
     return (
-      <header className="space-y-1">
+      <header className="space-y-1.5">
         <div
-          className="grid grid-cols-12 items-start gap-2 border-b-2 pb-1.5 text-[10px] leading-snug"
-          style={{ borderColor: accent }}
+          className="grid grid-cols-12 items-start gap-2 rounded-t-[4px] px-2 pt-1 pb-1.5 text-[10px] leading-snug"
+          style={{
+            background: `linear-gradient(180deg, ${accent}0b 0%, transparent 100%)`,
+            borderBottom: `2px solid ${accent}`,
+          }}
         >
           <div className="col-span-5 text-start">
-            <div className="font-bold text-slate-900">{countryLineDisplay}</div>
-            <div className="font-semibold text-slate-800">
+            <div className="font-extrabold text-slate-900">{countryLineDisplay}</div>
+            <div className="font-bold text-slate-800">
               {ministryLineDisplay}
             </div>
             {metadata.academy && <div className="text-slate-700">{metadata.academy}</div>}
@@ -1201,7 +1668,7 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
           </div>
 
           <div className="col-span-4 pt-0.5 text-center">
-            <div className="font-bold" style={{ color: accent }}>
+            <div className="font-extrabold" style={{ color: accent }}>
               {metadata.subject ? `${labels.subjectPrefix} ${metadata.subject}` : reportTitleDisplay}
               {metadata.cycle ? ` · ${metadata.cycle}` : ''}
             </div>
@@ -1210,7 +1677,10 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                 {labels.levelLabel}: {metadata.level}
               </div>
             )}
-            <div className="mt-0.5 font-mono text-[9.5px] font-semibold text-slate-700">
+            <div
+              className="mt-0.5 font-mono text-[9.5px] font-bold"
+              style={{ color: secondaryAccent }}
+            >
               {labels.schoolYearLabel}: {metadata.schoolYear || '—'}
             </div>
           </div>
@@ -1231,7 +1701,10 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                 <div className="text-slate-700">
                   {labels.teacherLabel}: {metadata.teacherName || '—'}
                 </div>
-                <div className="mt-0.5 text-[9px] font-semibold text-slate-500">
+                <div
+                  className="mt-0.5 text-[9px] font-bold"
+                  style={{ color: secondaryAccent }}
+                >
                   {labels.memoRefLabel}
                 </div>
               </div>
@@ -1239,12 +1712,41 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
           </div>
         </div>
 
-        <div className="text-center">
-          <h1 className="text-[15px] font-extrabold" style={{ color: accent }}>
-            {reportTitleDisplay} — {metadata.examNumber} ({metadata.semester})
-          </h1>
+        {/* Executive Framed Report Title Centerpiece */}
+        <div
+          className="rounded-[4px] border-y px-3 py-1 text-center"
+          style={{
+            borderColor: `${accent}42`,
+            background: `linear-gradient(90deg, ${accent}05 0%, ${accent}0e 50%, ${secondaryAccent}08 100%)`,
+          }}
+        >
+          <div className="flex items-center justify-center gap-2">
+            <span
+              aria-hidden="true"
+              className="h-[1px] w-7"
+              style={{ backgroundColor: `${secondaryAccent}80` }}
+            />
+            <span
+              aria-hidden="true"
+              className="h-1.5 w-1.5 rotate-45"
+              style={{ backgroundColor: secondaryAccent }}
+            />
+            <h1 className="text-[14.5px] font-extrabold tracking-tight" style={{ color: accent }}>
+              {reportTitleDisplay} — {metadata.examNumber} ({metadata.semester})
+            </h1>
+            <span
+              aria-hidden="true"
+              className="h-1.5 w-1.5 rotate-45"
+              style={{ backgroundColor: secondaryAccent }}
+            />
+            <span
+              aria-hidden="true"
+              className="h-[1px] w-7"
+              style={{ backgroundColor: `${secondaryAccent}80` }}
+            />
+          </div>
           {reportSubtitleDisplay && (
-            <p className="mt-0.5 text-[9.5px] text-slate-600">
+            <p className="mt-0.5 text-[9px] font-medium text-slate-600">
               {reportSubtitleDisplay}
             </p>
           )}
@@ -1255,6 +1757,9 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
 
   const renderPage2 = () => {
     const hasDualRoster = page2Sections.some((s) => s.type === 'dual_roster_merit');
+    const extraPage2Sections = page2Sections.filter(
+      (s) => s.type !== 'dual_roster_merit' && s.type !== 'signatures'
+    );
     const studentCount = Math.max(1, students.length);
     const hasThresholdDivider = stats.rankedStudents.some((st, idx) => {
       if (idx === 0) return false;
@@ -1307,20 +1812,23 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
     const appreciationFontSizePx = Math.max(6.7, Math.round((fontSizePx - 0.8) * 10) / 10);
 
     return (
-      <article
+      <ReportSheetFrame
+        styleConfig={template.styleConfig}
         dir={labels.dir}
-        className={`report-sheet mx-auto mt-8 flex w-[210mm] flex-col justify-between overflow-hidden bg-white ${
-          isUltraDensePage2 ? 'p-[5mm]' : isDensePage2 ? 'p-[6.5mm]' : 'p-[8mm]'
-        } text-slate-900 shadow-sm print:mt-0 print:shadow-none ${fontClass}`}
-        style={{
-          border: template.styleConfig.showOuterFrame
-            ? `${isDoubleBorder ? '4px double' : '1px solid'} ${accent}`
-            : undefined,
-        }}
+        className={`mt-8 print:mt-0 ${fontClass}`}
+        innerPaddingClass={
+          isUltraDensePage2 ? 'p-[2.5mm]' : isDensePage2 ? 'p-[3.2mm]' : 'p-[4.2mm]'
+        }
       >
         {/* Top Zone: Page 2 Compact Header */}
-        <header className="shrink-0 border-b-2 pb-1" style={{ borderColor: accent }}>
-          <div className="flex flex-wrap items-center justify-between gap-2 text-[9.5px] text-slate-700">
+        <header
+          className="shrink-0 rounded-t-[3px] px-1.5 pt-0.5 pb-1"
+          style={{
+            background: `linear-gradient(180deg, ${accent}0a 0%, transparent 100%)`,
+            borderBottom: `2px solid ${accent}`,
+          }}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2 text-[9px] text-slate-700">
             <span className="font-bold text-slate-900">
               {countryLineDisplay} · {ministryLineDisplay}
               {metadata.school ? ` · ${metadata.school}` : ''}
@@ -1336,7 +1844,7 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
           </div>
 
           <h2
-            className="mt-0.5 text-center text-[13px] font-extrabold"
+            className="mt-0.5 text-center text-[12.5px] font-extrabold tracking-tight"
             style={{ color: accent }}
           >
             {labels.appendixPrefix} {metadata.examNumber} ({metadata.semester}):{' '}
@@ -1345,20 +1853,37 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
               : labels.defaultAppendixTitle}
           </h2>
 
-          <div className="mt-1 flex flex-wrap items-center justify-between gap-2 rounded border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[9.5px] font-semibold">
+          <div
+            className="mt-1 flex flex-wrap items-center justify-between gap-2 rounded-[3px] border px-2.5 py-0.5 text-[9px] font-semibold"
+            style={{
+              borderColor: `${accent}30`,
+              backgroundColor: `${accent}07`,
+            }}
+          >
             <span>{labels.classLabel}: {metadata.className || '—'}</span>
             <span>{labels.metaExamDate} {metadata.examDate || '—'}</span>
             <span className="font-mono tabular-nums">{labels.kpiEnrolled}: {stats.total}</span>
             <span className="font-mono tabular-nums">{labels.kpiPresent}: {stats.present}</span>
             <span className="font-mono tabular-nums">{labels.kpiAbsent}: {stats.absent}</span>
-            <span className="font-mono tabular-nums" style={{ color: accent }}>
+            <span className="font-mono font-bold tabular-nums" style={{ color: accent }}>
               {labels.kpiAverage}: {stats.average.toFixed(2)} / 20
             </span>
-            <span className="font-mono tabular-nums text-emerald-700">
+            <span className="font-mono font-bold tabular-nums text-emerald-700">
               {labels.kpiMastered}: {stats.passRate.toFixed(0)}%
             </span>
           </div>
         </header>
+
+        {/* Additional Page 2 Sections (when user assigns sections like remediation_plan, top_and_struggling, full_students_table, custom_text to Page 2) */}
+        {extraPage2Sections.length > 0 && (
+          <div
+            className={`mt-[1.5mm] space-y-2 ${
+              hasDualRoster ? 'shrink-0 mb-[1.5mm]' : 'flex-1 min-h-0 overflow-hidden mb-[2mm]'
+            }`}
+          >
+            {extraPage2Sections.map((sec) => renderSectionBody(sec))}
+          </div>
+        )}
 
         {/* Middle Zone: Proportional Dual Roster with an exact 2mm bottom gap before the report continuation */}
         {hasDualRoster && (
@@ -1370,17 +1895,22 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
               {/* Sequential Order Table */}
               <div className="col-span-5 flex h-full flex-col min-h-0">
                 <div
-                  className="flex h-[22px] shrink-0 items-center rounded-t px-2 text-[9.5px] font-bold text-white"
-                  style={{ backgroundColor: accent }}
+                  className="flex h-[22px] shrink-0 items-center justify-between rounded-t-[4px] px-2 text-[9.5px] font-bold text-white"
+                  style={{
+                    background: `linear-gradient(to left, ${accent} 0%, ${accent}dd 100%)`,
+                  }}
                 >
-                  {labels.seqRosterTitle}
+                  <span>{labels.seqRosterTitle}</span>
                 </div>
                 <table
                   className="h-full w-full flex-1 border-collapse"
                   style={{ fontSize: `${fontSizePx}px`, lineHeight: 1.1 }}
                 >
                   <thead>
-                    <tr className="bg-slate-100 font-bold text-slate-800" style={{ height: '20px' }}>
+                    <tr
+                      className="font-bold text-slate-900"
+                      style={{ height: '20px', backgroundColor: `${accent}12` }}
+                    >
                       <th className="w-8 border border-slate-300 px-1 py-0 text-center">{labels.colOrder}</th>
                       <th className="border border-slate-300 px-1.5 py-0 text-start">{labels.colStudentName}</th>
                       <th className="w-14 border border-slate-300 px-1 py-0 text-center">
@@ -1425,17 +1955,22 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
               {/* Merit Ranking Table */}
               <div className="col-span-7 flex h-full flex-col min-h-0">
                 <div
-                  className="flex h-[22px] shrink-0 items-center rounded-t px-2 text-[9.5px] font-bold text-white"
-                  style={{ backgroundColor: secondaryAccent }}
+                  className="flex h-[22px] shrink-0 items-center justify-between rounded-t-[4px] px-2 text-[9.5px] font-bold text-white"
+                  style={{
+                    background: `linear-gradient(to left, ${secondaryAccent} 0%, ${secondaryAccent}dd 100%)`,
+                  }}
                 >
-                  {labels.meritRosterTitle}
+                  <span>{labels.meritRosterTitle}</span>
                 </div>
                 <table
                   className="h-full w-full flex-1 border-collapse"
                   style={{ fontSize: `${fontSizePx}px`, lineHeight: 1.1 }}
                 >
                   <thead>
-                    <tr className="bg-slate-100 font-bold text-slate-800" style={{ height: '20px' }}>
+                    <tr
+                      className="font-bold text-slate-900"
+                      style={{ height: '20px', backgroundColor: `${secondaryAccent}12` }}
+                    >
                       <th className="w-9 border border-slate-300 px-1 py-0 text-center">
                         {labels.colRank}
                       </th>
@@ -1620,7 +2155,13 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                       : isDensePage2
                       ? 'min-h-[45px] p-1'
                       : 'min-h-[54px] p-1.5'
-                  } flex-col justify-between rounded border border-slate-300 bg-slate-50/40`}
+                  } flex-col justify-between rounded-[4px] border bg-white`}
+                  style={{
+                    borderColor: `${accent}35`,
+                    borderTopWidth: '2px',
+                    borderTopColor: accent,
+                    backgroundColor: `${accent}04`,
+                  }}
                 >
                   <div>
                     <div className="font-bold" style={{ color: accent }}>
@@ -1687,7 +2228,10 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
             })}
           </div>
 
-          <footer className="flex items-center justify-between border-t border-slate-200 pt-1 text-[8.5px] text-slate-500">
+          <footer
+            className="flex items-center justify-between border-t pt-1 text-[8.5px] text-slate-500"
+            style={{ borderColor: `${accent}30` }}
+          >
             <span>
               {[
                 labels.footerBrand,
@@ -1697,12 +2241,12 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                 .filter(Boolean)
                 .join(' · ')}
             </span>
-            <span className="font-mono tabular-nums">
+            <span className="font-mono font-semibold tabular-nums" style={{ color: accent }}>
               {labels.pageOfTotal(reportStartPage + 1, totalPages)}
             </span>
           </footer>
         </div>
-      </article>
+      </ReportSheetFrame>
     );
   };
 
@@ -1735,24 +2279,22 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
         />
       )}
 
-      <article
-        ref={page1SheetRef}
+      <ReportSheetFrame
+        sheetRef={page1SheetRef}
+        styleConfig={template.styleConfig}
         dir={labels.dir}
-        className={`report-sheet mx-auto ${isInspection ? 'mt-8 print:mt-0' : ''} flex w-[210mm] flex-col justify-between overflow-hidden bg-white ${
-          isPage1Tight ? 'p-[6.5mm]' : 'p-[8mm]'
-        } text-slate-900 shadow-sm print:shadow-none ${fontClass} ${scaleBodyClass}`}
-        style={{
-          border: template.styleConfig.showOuterFrame
-            ? `${isDoubleBorder ? '4px double' : '1px solid'} ${accent}`
-            : undefined,
-        }}
+        className={`${isInspection ? 'mt-8 print:mt-0' : ''} ${fontClass} ${scaleBodyClass}`}
+        innerPaddingClass={isPage1Tight ? 'p-[3.2mm]' : 'p-[4.2mm]'}
       >
         <div className={`flex flex-1 flex-col justify-between ${isPage1Tight ? 'gap-1' : 'gap-1.5'}`}>
           {renderPage1Header()}
           {page1Sections.map((sec) => renderSectionBody(sec))}
         </div>
 
-        <footer className="mt-1.5 flex items-center justify-between border-t border-slate-200 pt-1 text-[9px] text-slate-500">
+        <footer
+          className="mt-1.5 flex items-center justify-between border-t pt-1 text-[9px] text-slate-500"
+          style={{ borderColor: `${accent}30` }}
+        >
           <span>
             {[
               labels.footerBrand,
@@ -1762,11 +2304,11 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
               .filter(Boolean)
               .join(' · ')}
           </span>
-          <span className="font-mono tabular-nums">
+          <span className="font-mono font-semibold tabular-nums" style={{ color: accent }}>
             {labels.pageOfTotal(reportStartPage, totalPages)}
           </span>
         </footer>
-      </article>
+      </ReportSheetFrame>
 
       {hasPage2 && renderPage2()}
 
@@ -1805,15 +2347,12 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
       {attachmentPages.map((imgSrc, idx) => {
         const pageNumber = attachmentStartPage + idx;
         return (
-          <article
+          <ReportSheetFrame
             key={`exam-attachment-${idx}`}
+            styleConfig={template.styleConfig}
             dir={labels.dir}
-            className={`report-sheet mx-auto mt-8 flex w-[210mm] flex-col justify-between bg-white p-[8.5mm] text-slate-900 shadow-sm print:mt-0 print:shadow-none ${fontClass}`}
-            style={{
-              border: template.styleConfig.showOuterFrame
-                ? `${isDoubleBorder ? '4px double' : '1px solid'} ${accent}`
-                : undefined,
-            }}
+            className={`mt-8 print:mt-0 ${fontClass}`}
+            innerPaddingClass="p-[4.5mm]"
           >
             <div className="flex flex-1 flex-col min-h-0">
               <div
@@ -1834,22 +2373,25 @@ export const ReportDocument: React.FC<ReportDocumentProps> = ({
                 <img
                   src={imgSrc}
                   alt={`${examAttachment?.fileName || 'Exam'} - ${idx + 1}`}
-                  className="max-h-[256mm] w-full object-contain"
+                  className="max-h-[252mm] w-full object-contain"
                 />
               </div>
             </div>
 
-            <footer className="mt-2 flex items-center justify-between border-t border-slate-200 pt-1.5 text-[9px] text-slate-500">
+            <footer
+              className="mt-2 flex items-center justify-between border-t pt-1.5 text-[9px] text-slate-500"
+              style={{ borderColor: `${accent}30` }}
+            >
               <span>
                 {[labels.footerBrand, examAttachment?.fileName || '']
                   .filter(Boolean)
                   .join(' · ')}
               </span>
-              <span className="font-mono tabular-nums">
+              <span className="font-mono font-semibold tabular-nums" style={{ color: accent }}>
                 {labels.pageOfTotal(pageNumber, totalPages)}
               </span>
             </footer>
-          </article>
+          </ReportSheetFrame>
         );
       })}
 

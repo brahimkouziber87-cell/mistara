@@ -15,6 +15,7 @@ import {
   computeItemMatrixStats,
   computeLongitudinalComparison,
 } from '../utils/pedagogicalAnalytics';
+import { ReportSheetFrame } from './ReportSheetFrame';
 
 export interface InspectionTocEntry {
   index: number;
@@ -44,17 +45,13 @@ export const InspectionCoverSheet: React.FC<InspectionCoverSheetProps> = ({
   const accent = template.styleConfig.accentColor || '#1e3a8a';
   const secondary = template.styleConfig.secondaryAccent || '#0f766e';
   const fontClass = getReportFontClass(template.styleConfig.fontFamily);
-  const isDoubleBorder = template.styleConfig.borderStyle === 'official-double';
 
   return (
-    <article
+    <ReportSheetFrame
+      styleConfig={template.styleConfig}
       dir={labels.dir}
-      className={`report-sheet mx-auto flex w-[210mm] flex-col justify-between overflow-hidden bg-white p-[10mm] text-slate-900 shadow-sm print:shadow-none ${fontClass}`}
-      style={{
-        border: template.styleConfig.showOuterFrame
-          ? `${isDoubleBorder ? '4px double' : '1px solid'} ${accent}`
-          : undefined,
-      }}
+      className={fontClass}
+      innerPaddingClass="p-[5.5mm]"
     >
       <div className="space-y-4">
         {/* Institutional Header */}
@@ -306,7 +303,7 @@ export const InspectionCoverSheet: React.FC<InspectionCoverSheetProps> = ({
           <span className="font-mono tabular-nums">{labels.pageOfTotal(1, totalPages)}</span>
         </footer>
       </div>
-    </article>
+    </ReportSheetFrame>
   );
 };
 
@@ -336,9 +333,11 @@ export const ItemMatrixReportSheet: React.FC<ItemMatrixReportSheetProps> = ({
   const itemStats = computeItemMatrixStats(students, itemDefinitions, studentItemScores, 50);
 
   return (
-    <article
+    <ReportSheetFrame
+      styleConfig={template.styleConfig}
       dir={labels.dir}
-      className={`report-sheet mx-auto mt-8 flex w-[210mm] flex-col justify-between overflow-hidden bg-white p-[9mm] text-slate-900 shadow-sm print:mt-0 print:shadow-none ${fontClass}`}
+      className={`mt-8 print:mt-0 ${fontClass}`}
+      innerPaddingClass="p-[5mm]"
     >
       <div className="space-y-4">
         <header
@@ -449,7 +448,7 @@ export const ItemMatrixReportSheet: React.FC<ItemMatrixReportSheetProps> = ({
         </span>
         <span className="font-mono tabular-nums">{labels.pageOfTotal(pageNumber, totalPages)}</span>
       </footer>
-    </article>
+    </ReportSheetFrame>
   );
 };
 
@@ -478,9 +477,11 @@ export const LongitudinalSummaryReportSheet: React.FC<LongitudinalSummaryReportS
   );
 
   return (
-    <article
+    <ReportSheetFrame
+      styleConfig={template.styleConfig}
       dir={labels.dir}
-      className={`report-sheet mx-auto mt-8 flex w-[210mm] flex-col justify-between overflow-hidden bg-white p-[9mm] text-slate-900 shadow-sm print:mt-0 print:shadow-none ${fontClass}`}
+      className={`mt-8 print:mt-0 ${fontClass}`}
+      innerPaddingClass="p-[5mm]"
     >
       <div className="space-y-4">
         <header
@@ -657,7 +658,7 @@ export const LongitudinalSummaryReportSheet: React.FC<LongitudinalSummaryReportS
         </span>
         <span className="font-mono tabular-nums">{labels.pageOfTotal(pageNumber, totalPages)}</span>
       </footer>
-    </article>
+    </ReportSheetFrame>
   );
 };
 
@@ -676,7 +677,6 @@ export const PostRemediationImpactReportSheet: React.FC<
   const labels = getReportLabels(lang);
   const accent = template.styleConfig.accentColor || '#1e3a8a';
   const fontClass = getReportFontClass(template.styleConfig.fontFamily);
-  const isDoubleBorder = template.styleConfig.borderStyle === 'official-double';
 
   const visibleRows = impact.studentRows.slice(0, 52);
   const hiddenRowsCount = Math.max(0, impact.studentRows.length - visibleRows.length);
@@ -701,14 +701,11 @@ export const PostRemediationImpactReportSheet: React.FC<
   };
 
   return (
-    <article
+    <ReportSheetFrame
+      styleConfig={template.styleConfig}
       dir={labels.dir}
-      className={`report-sheet mx-auto mt-8 flex w-[210mm] flex-col justify-between overflow-hidden bg-white p-[9mm] text-slate-900 shadow-sm print:mt-0 print:shadow-none ${fontClass}`}
-      style={{
-        border: template.styleConfig.showOuterFrame
-          ? `${isDoubleBorder ? '4px double' : '1px solid'} ${accent}`
-          : undefined,
-      }}
+      className={`mt-8 print:mt-0 ${fontClass}`}
+      innerPaddingClass="p-[5mm]"
     >
       <div className="space-y-4">
         <header
@@ -857,7 +854,7 @@ export const PostRemediationImpactReportSheet: React.FC<
         </span>
         <span className="font-mono tabular-nums">{labels.pageOfTotal(pageNumber, totalPages)}</span>
       </footer>
-    </article>
+    </ReportSheetFrame>
   );
 };
 

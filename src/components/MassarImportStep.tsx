@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle,
   ArrowLeft,
@@ -101,6 +101,12 @@ export const MassarImportStep: React.FC<MassarImportStepProps> = ({
     () => students.filter((s) => !s.isAbsent && s.score === null).length,
     [students]
   );
+
+  useEffect(() => {
+    if (filterMode === 'unscored' && unscoredPresentCount === 0) {
+      setFilterMode('all');
+    }
+  }, [filterMode, unscoredPresentCount]);
 
   const [autoLoadEnabled, setAutoLoadEnabled] = useState<boolean>(() => {
     try {

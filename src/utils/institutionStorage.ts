@@ -7,9 +7,12 @@ import {
   RemediationCardsConfig,
   ReportFontFamily,
   ReportFontScale,
+  ReportFrameStyle,
   ReportLanguage,
+  ReportSection,
   ReportTemplateSchema,
   ScoreBracket,
+  SignatureSlot,
   StudentItemScores,
   StudentRecord,
 } from '../types/report';
@@ -22,6 +25,9 @@ const STORAGE_KEY = 'mistara_institution_settings_v1';
 const WORKSPACE_DRAFT_KEY = 'mistara_workspace_draft_v1';
 
 export interface SavedInstitutionSettings {
+  templateId?: string;
+  sections?: ReportSection[];
+  signatures?: SignatureSlot[];
   metadata: {
     academy: string;
     directorate: string;
@@ -42,6 +48,7 @@ export interface SavedInstitutionSettings {
     accentColor: string;
     secondaryAccent?: string;
     borderStyle?: ReportTemplateSchema['styleConfig']['borderStyle'];
+    frameStyle?: ReportFrameStyle;
     fontFamily: ReportFontFamily;
     fontScale?: ReportFontScale;
     showOuterFrame?: boolean;
@@ -66,12 +73,27 @@ const VALID_FONT_FAMILIES: ReportFontFamily[] = [
   'cairo',
   'ibm-plex-sans-arabic',
   'amiri',
+  'noto-naskh-arabic',
   'noto-kufi-arabic',
   'tajawal',
+  'almarai',
+  'readex-pro',
+];
+
+const VALID_FRAME_STYLES: ReportFrameStyle[] = [
+  'double-inset',
+  'royal-corners',
+  'classic-double',
+  'top-bottom-bands',
+  'none',
 ];
 
 function isValidFontFamily(val: unknown): val is ReportFontFamily {
   return typeof val === 'string' && VALID_FONT_FAMILIES.includes(val as ReportFontFamily);
+}
+
+function isValidFrameStyle(val: unknown): val is ReportFrameStyle {
+  return typeof val === 'string' && VALID_FRAME_STYLES.includes(val as ReportFrameStyle);
 }
 
 export function migrateLegacyMinistryLine(text: string): string {
@@ -215,8 +237,10 @@ export function getInitialMetadata(): MassarMetadata {
 }
 
 export function getInitialTemplate(): ReportTemplateSchema {
-  const base = TEMPLATE_PRESETS[0];
   const saved = loadSavedInstitutionSettings();
+  const base =
+    (saved?.templateId && TEMPLATE_PRESETS.find((p) => p.id === saved.templateId)) ||
+    TEMPLATE_PRESETS[0];
   if (!saved) return base;
 
   const validBrackets =
@@ -226,8 +250,32 @@ export function getInitialTemplate(): ReportTemplateSchema {
       ? saved.brackets
       : base.brackets;
 
+  const validSections =
+    Array.isArray(saved.sections) &&
+    saved.sections.length > 0 &&
+    saved.sections.every(
+      (s) =>
+        s &&
+        typeof s.id === 'string' &&
+        typeof s.type === 'string' &&
+        typeof s.title === 'string' &&
+        typeof s.enabled === 'boolean'
+    )
+      ? saved.sections
+      : base.sections;
+
+  const validSignatures =
+    Array.isArray(saved.signatures) &&
+    saved.signatures.length >= 2 &&
+    saved.signatures.every((sig) => sig && typeof sig.id === 'string' && typeof sig.label === 'string')
+      ? saved.signatures
+      : base.signatures;
+
   return {
     ...base,
+    sections: validSections,
+    signatures: validSignatures,
+    hasTwoPages: validSections.some((s) => s.enabled && s.page === 2),
     passThreshold: isValidNumber(saved.passThreshold) ? saved.passThreshold : base.passThreshold,
     excellenceThreshold: isValidNumber(saved.excellenceThreshold)
       ? saved.excellenceThreshold
@@ -250,6 +298,9 @@ export function getInitialTemplate(): ReportTemplateSchema {
         saved.styleConfig?.borderStyle === 'modern-minimal'
           ? saved.styleConfig.borderStyle
           : base.styleConfig.borderStyle,
+      frameStyle: isValidFrameStyle(saved.styleConfig?.frameStyle)
+        ? saved.styleConfig.frameStyle
+        : base.styleConfig.frameStyle,
       fontFamily: isValidFontFamily(saved.styleConfig?.fontFamily)
         ? saved.styleConfig.fontFamily
         : base.styleConfig.fontFamily,
@@ -273,6 +324,7 @@ export function getInitialTemplate(): ReportTemplateSchema {
         saved.styleConfig?.chartType === 'bar' ||
         saved.styleConfig?.chartType === 'horizontal-bar' ||
         saved.styleConfig?.chartType === 'donut' ||
+        saved.styleConfig?.chartType === 'gauss' ||
         saved.styleConfig?.chartType === 'none'
           ? saved.styleConfig.chartType
           : base.styleConfig.chartType,
@@ -372,6 +424,9 @@ export function saveInstitutionSettings(
     };
 
     const payload: SavedInstitutionSettings = {
+      templateId: template.id,
+      sections: template.sections,
+      signatures: template.signatures,
       metadata: {
         academy: pickNonEmpty('academy', metadata.academy, prevMeta?.academy),
         directorate: pickNonEmpty('directorate', metadata.directorate, prevMeta?.directorate),
@@ -398,6 +453,7 @@ export function saveInstitutionSettings(
         accentColor: template.styleConfig.accentColor,
         secondaryAccent: template.styleConfig.secondaryAccent,
         borderStyle: template.styleConfig.borderStyle,
+        frameStyle: template.styleConfig.frameStyle,
         fontFamily: template.styleConfig.fontFamily,
         fontScale: template.styleConfig.fontScale ?? 'standard',
         showOuterFrame: template.styleConfig.showOuterFrame,

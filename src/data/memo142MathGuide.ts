@@ -214,7 +214,7 @@ export const MEMO_142_MATH_TRACKS: Memo142MathTrackSpec[] = [
     supervisedWeightPct: 100,
     singleExamWeightLabel: '33.33%',
     subjectCoefficient: 7,
-    weeklyHours: '5 ساعات',
+    weeklyHours: '5 ساعات (ع.ت) / 4 ساعات (تكنولوجيات)',
     assessmentNature: 'مراقبة مستمرة فقط (تُمتحن وطنياً في الثانية باك)',
     taxonomyBreakdown: {
       directApplicationPct: 35,
@@ -263,17 +263,17 @@ export const MEMO_142_MATH_TRACKS: Memo142MathTrackSpec[] = [
     shortCode: '1BAC AA',
     label: 'الأولى بكالوريا الفنون التطبيقية',
     levelLabel: 'الأولى بكالوريا الفنون التطبيقية',
-    examsPerSemester: 3,
-    annualExamsTotal: 6,
+    examsPerSemester: 2,
+    annualExamsTotal: 4,
     homeworksPerSemester: 2,
     officialDuration: 'ساعة واحدة (1h)',
     durationMinutes: 60,
-    annualExamHours: 6,
+    annualExamHours: 4,
     supervisedWeightPct: 100,
-    singleExamWeightLabel: '33.33%',
-    subjectCoefficient: 4,
-    weeklyHours: '3 ساعات',
-    assessmentNature: 'مراقبة مستمرة فقط (تُمتحن وطنياً في الثانية باك)',
+    singleExamWeightLabel: '50%',
+    subjectCoefficient: 2,
+    weeklyHours: 'ساعتان',
+    assessmentNature: 'مراقبة مستمرة فقط',
     taxonomyBreakdown: {
       directApplicationPct: 40,
       familiarSituationsPct: 45,
@@ -282,7 +282,7 @@ export const MEMO_142_MATH_TRACKS: Memo142MathTrackSpec[] = [
     examCriteriaTemplate:
       '40% تطبيق مباشر للمعارف والتقنيات · 45% توظيف في وضعيات هندسية وتحليلية مألوفة · 15% مسائل تطبيقية (المذكرة 142-08).',
     gradingScaleTemplate:
-      'التنقيط على 20 وفق المذكرة 142-08: 3 فروض محروسة في الدورة بمدة ساعة واحدة وبوزن متساوٍ (33.33% لكل فرض · 100% فروض محروسة).',
+      'التنقيط على 20 وفق المذكرة 142-08: فرضان محروسان في الدورة بمدة ساعة واحدة وبوزن متساوٍ (50% لكل فرض · 100% فروض محروسة).',
     keySyllabusHighlights:
       'مبادئ في المنطق · الحساب المثلثي · الهندسة التحليلية والتحويلات الهندسية · المتتاليات العددية · النهايات والاشتقاق ودراسة الدوال.',
   },
@@ -388,7 +388,7 @@ export const MEMO_142_MATH_TRACKS: Memo142MathTrackSpec[] = [
     supervisedWeightPct: 100,
     singleExamWeightLabel: '33.33%',
     subjectCoefficient: 7,
-    weeklyHours: '5 ساعات',
+    weeklyHours: '5 ساعات (ع.ت) / 4 ساعات (تكنولوجيات)',
     assessmentNature: 'امتحان وطني موحد + مراقبة مستمرة',
     taxonomyBreakdown: {
       directApplicationPct: 30,
@@ -437,28 +437,28 @@ export const MEMO_142_MATH_TRACKS: Memo142MathTrackSpec[] = [
     shortCode: '2BAC AA',
     label: 'الثانية بكالوريا الفنون التطبيقية',
     levelLabel: 'الثانية بكالوريا الفنون التطبيقية',
-    examsPerSemester: 3,
-    annualExamsTotal: 6,
+    examsPerSemester: 2,
+    annualExamsTotal: 4,
     homeworksPerSemester: 2,
     officialDuration: 'ساعة واحدة (1h)',
     durationMinutes: 60,
-    annualExamHours: 6,
+    annualExamHours: 4,
     supervisedWeightPct: 100,
-    singleExamWeightLabel: '33.33%',
-    subjectCoefficient: 4,
-    weeklyHours: '3 ساعات',
-    assessmentNature: 'امتحان وطني موحد + مراقبة مستمرة',
+    singleExamWeightLabel: '50%',
+    subjectCoefficient: 2,
+    weeklyHours: 'ساعتان',
+    assessmentNature: 'مراقبة مستمرة فقط (لا تُمتحن وطنياً في الفنون التطبيقية)',
     taxonomyBreakdown: {
-      directApplicationPct: 35,
+      directApplicationPct: 40,
       familiarSituationsPct: 45,
-      complexProblemsPct: 20,
+      complexProblemsPct: 15,
     },
     examCriteriaTemplate:
-      '35% تطبيق مباشر · 45% دراسة دوال ومتتاليات وهندسة وفق الإطار المرجعي للوطني · 20% مسائل تركيبية (المذكرة 142-08).',
+      '40% تطبيق مباشر للقواعد · 45% دراسة دوال ومتتاليات واحتمالات في وضعيات مألوفة · 15% مسائل تطبيقية (المذكرة 142-08).',
     gradingScaleTemplate:
-      'التنقيط على 20 وفق المذكرة 142-08: 3 فروض محروسة في الدورة بمدة ساعة واحدة وبوزن متساوٍ (33.33% لكل فرض · 100% فروض محروسة).',
+      'التنقيط على 20 وفق المذكرة 142-08: فرضان محروسان في الدورة بمدة ساعة واحدة وبوزن متساوٍ (50% لكل فرض · 100% فروض محروسة).',
     keySyllabusHighlights:
-      'الاتصال والاشتقاق ودراسة الدوال · المتتاليات العددية · الدالة اللوغاريتمية والأسية · الحساب التكاملي · الاحتمالات والهندسة.',
+      'الاشتقاق ودراسة الدوال الحدودية والجذرية والمتخاطة · المتتاليات العددية · الدالة اللوغاريتمية النبيرية والأسية · الحساب التكاملي · التعداد وحساب الاحتمالات.',
   },
   {
     id: '2bac-lsh',
@@ -634,19 +634,20 @@ export function detectMathTrackFromMetadata(metadata: MassarMetadata): Memo142Ma
   const raw = `${metadata.level} ${metadata.className}`
     .replace(/[أإآ]/g, 'ا')
     .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
     .toLowerCase();
 
-  const is2Bac = /2\s*bac|ثاني[ةه]\s*بكالوريا|ثانية\s*باك|2b/.test(raw);
-  const is1Bac = /1\s*bac|اولي\s*بكالوريا|أولى\s*بكالوريا|اولى\s*باك|1b/.test(raw);
-  const isTC = /جذع|tc|tcs|tcsf|tclsh|tct|tco/.test(raw);
+  const is2Bac = /2\s*bac|ثانيه\s*بكالوريا|ثانيه\s*باك|\b2b(?:ac|[a-z]|$|\d|-|_)/.test(raw);
+  const is1Bac = /1\s*bac|اولي\s*بكالوريا|اولي\s*باك|\b1b(?:ac|[a-z]|$|\d|-|_)/.test(raw);
+  const isTC = /جذع|\btc(?:s|sf|t|lsh|o|f)?(?:[-_\d\s]|$)/.test(raw);
 
-  const isPro = /مهني[ةه]|\bpro\b|bac\s*pro/.test(raw);
-  const isAA = /فنون\s*تطبيقي[ةه]|الفنون|\baa\b|arts\s*appl/.test(raw);
-  const isOri = /اصيل|أصيل|شرعي[ةه]|لغة\s*عربي[ةه]|\btco\b|\bori\b/.test(raw);
-  const isSM = /علوم رياضية|رياضية|\bsm\b|sm[-_a-b0-9]/i.test(raw);
-  const isEco = /اقتصاد|تدبير|محاسب|\beco\b|\bsgc\b|\bseco\b/i.test(raw);
-  const isLSH = /اداب|آداب|انسانية|\blsh\b|lettre/i.test(raw);
-  const isPCSVT = /فيزيائية|حياة|ارض|أرض|زراعي[ةه]|ميكانيك|كهربائ|\bpc\b|\bsvt\b|\bsp\b|\bstm\b|\bste\b/i.test(raw);
+  const isPro = /مهنيه|\bpro\b|bac\s*pro|\b(?:1|2)?b(?:ac)?pro(?:[-_\d\s]|$)/.test(raw);
+  const isAA = /فنون\s*تطبيقيه|الفنون|arts?\s*appl|\baa(?:[-_\d\s]|$)|\b(?:1|2)b(?:ac)?aa(?:f)?(?:[-_\d\s]|$)/.test(raw);
+  const isOri = /اصيل|شرعيه|لغه\s*عربيه|\btco(?:[-_\d\s]|$)|\bori(?:[-_\d\s]|$)|\b(?:1|2)b(?:ac)?ori(?:[-_\d\s]|$)/.test(raw);
+  const isSM = /علوم\s*رياضيه|رياضيه|\bsm(?:[abf]|[-_\d\s]|$)|\b(?:1|2)b(?:ac)?sm(?:[abf]|[-_\d\s]|$)/.test(raw);
+  const isEco = /اقتصاد|تدبير|محاسب|\bs?eco(?:f)?(?:[-_\d\s]|$)|\bsgc(?:f)?(?:[-_\d\s]|$)|\b(?:1|2)b(?:ac)?s?(?:eco|sgc)(?:f)?(?:[-_\d\s]|$)/.test(raw);
+  const isLSH = /اداب|انسانيه|lettre|\blsh(?:[-_\d\s]|$)|\btclsh(?:[-_\d\s]|$)|\b(?:1|2)b(?:ac)?(?:lsh|sh|l)(?:[-_\d\s]|$)/.test(raw);
+  const isPCSVT = /فيزيائيه|حياه|ارض|زراعيه|ميكانيك|كهربائ|\b(?:pc|svt|sp|stm|ste)(?:f)?(?:[-_\d\s]|$)|\b(?:1|2)b(?:ac)?(?:pc|svt|sp|se|stm|ste)(?:f)?(?:[-_\d\s]|$)/.test(raw);
 
   if (isPro) return MEMO_142_MATH_TRACKS.find((t) => t.id === 'bac-pro')!;
 
@@ -725,13 +726,17 @@ function parseFlexibleDate(value: string): Date | null {
 }
 
 function parseDurationMinutes(durationStr: string): number | null {
-  const s = (durationStr || '').toLowerCase();
-  if (!s.trim()) return null;
-  if (/ساعتان|ساعتين|2\s*h|2\s*ساع|120\s*(?:د|min)/.test(s)) return 120;
-  if (/3\s*h|3\s*ساع|ثلاث\s*ساعات|180/.test(s)) return 180;
-  if (/4\s*h|4\s*ساع|أربع\s*ساعات|240/.test(s)) return 240;
-  if (/ساعة\s*ونصف|1\.5\s*h|1h30|90\s*(?:د|min)/.test(s)) return 90;
-  if (/ساعة|1\s*h|60\s*(?:د|min)/.test(s)) return 60;
+  const s = (durationStr || '')
+    .replace(/[أإآ]/g, 'ا')
+    .toLowerCase()
+    .trim();
+  if (!s) return null;
+  if (/ساعت(?:ان|ين)\s*و\s*(?:نصف|30)|2\.5\s*h|2\s*h\s*30|150\s*(?:د|min)/.test(s)) return 150;
+  if (/ساع[ةه]\s*و\s*(?:نصف|30)|1\.5\s*h|1\s*h\s*30|90\s*(?:د|min)/.test(s)) return 90;
+  if (/4\s*h|4\s*ساع|اربع\s*ساعات|240\s*(?:د|min)?/.test(s)) return 240;
+  if (/3\s*h|3\s*ساع|ثلاث\s*ساعات|180\s*(?:د|min)?/.test(s)) return 180;
+  if (/ساعتان|ساعتين|2\s*h|2\s*ساع|120\s*(?:د|min)?/.test(s)) return 120;
+  if (/ساع[ةه]|1\s*h|60\s*(?:د|min)?/.test(s)) return 60;
   return null;
 }
 
@@ -745,6 +750,12 @@ export function auditMemo142Compliance(
 
   // 1. Duration Check
   const detectedMinutes = parseDurationMinutes(metadata.duration);
+  const isAcceptedPrepDuration =
+    detectedMinutes !== null &&
+    ((track.id === '2bac-sm' && detectedMinutes >= 120 && detectedMinutes <= 240) ||
+      ((track.id === '2bac-pc-svt' || track.id === '2bac-eco') && detectedMinutes === 180) ||
+      ((track.id === '1bac-lsh' || track.id === '1bac-ori') && detectedMinutes === 90));
+
   if (detectedMinutes === null) {
     checks.push({
       id: 'duration',
@@ -752,15 +763,19 @@ export function auditMemo142Compliance(
       status: 'warn',
       detail: `لم تُضبط المدة بوضوح. المدة القانونية لمسلك ${track.shortCode} هي ${track.officialDuration}.`,
     });
-  } else if (
-    detectedMinutes === track.durationMinutes ||
-    (track.id === '2bac-sm' && detectedMinutes >= 120 && detectedMinutes <= 240)
-  ) {
+  } else if (detectedMinutes === track.durationMinutes) {
     checks.push({
       id: 'duration',
       label: 'المدة الزمنية للفرض',
       status: 'pass',
       detail: `مطابقة للمذكرة 142-08 (${metadata.duration} لمسلك ${track.shortCode}).`,
+    });
+  } else if (isAcceptedPrepDuration) {
+    checks.push({
+      id: 'duration',
+      label: 'المدة الزمنية للفرض',
+      status: 'pass',
+      detail: `فرض تأليفي مقبول (${metadata.duration}) يطابق مدة الامتحان الإشهادي لمسلك ${track.shortCode} (المدة العادية: ${track.officialDuration}).`,
     });
   } else {
     checks.push({
@@ -839,7 +854,7 @@ export function auditMemo142Compliance(
     });
   }
 
-  // 4. Weighting & Official Ministry Header
+  // 4. Weighting, Exam Number & Official Ministry Header
   const rawWeight = (metadata.coefficient || '').trim();
   const hasWeight = rawWeight.length > 0;
   const parsedWeightNum = parseFloat(rawWeight.replace(',', '.').replace(/[^\d.]/g, ''));
@@ -850,25 +865,32 @@ export function auditMemo142Compliance(
       Number.isFinite(expectedWeightNum) &&
       Math.abs(parsedWeightNum - expectedWeightNum) <= 0.6);
 
+  const examNumMatch = (metadata.examNumber || '').match(/(\d+)/);
+  const parsedExamIndex = examNumMatch ? Number(examNumMatch[1]) : null;
+  const examNumberMatchesTrack =
+    parsedExamIndex === null || parsedExamIndex <= track.examsPerSemester;
+
   const trimmedMinistry = (template.headerConfig.ministryLine || '').trim();
   const officialMinistryOk =
     trimmedMinistry.length > 0 &&
     !trimmedMinistry.includes('والرياضة') &&
     !trimmedMinistry.includes('البحث العلمي');
-  if (hasWeight && weightMatchesTrack && officialMinistryOk) {
+  if (hasWeight && weightMatchesTrack && examNumberMatchesTrack && officialMinistryOk) {
     checks.push({
       id: 'admin',
-      label: 'وزن الفرض والترويسة الوزارية',
+      label: 'عدد ووزن الفرض والترويسة الوزارية',
       status: 'pass',
-      detail: `وزن الفرض (${rawWeight}) مطابق لمسلك ${track.shortCode} والترويسة مطابقة للتسمية الرسمية للوزارة.`,
+      detail: `وزن الفرض (${rawWeight}) ورقمه (${metadata.examNumber || 'فرض 1'}) مطابقان لمسلك ${track.shortCode} (${track.examsPerSemester} فروض/دورة) والترويسة مطابقة للتسمية الرسمية للوزارة.`,
     });
   } else {
     checks.push({
       id: 'admin',
-      label: 'وزن الفرض والترويسة الوزارية',
+      label: 'عدد ووزن الفرض والترويسة الوزارية',
       status: 'warn',
       detail: !officialMinistryOk
         ? 'الترويسة تحتوي على تسمية قديمة للوزارة — حدّثها إلى «وزارة التربية الوطنية والتعليم الأولي والتكوين المهني والتأهيل».'
+        : !examNumberMatchesTrack
+        ? `رقم الفرض المختار (${metadata.examNumber}) يتجاوز العدد القانوني لمسلك ${track.shortCode} المحدد في المذكرة 142-08 (${track.examsPerSemester} فروض محروسة في الدورة).`
         : !hasWeight
         ? `يرجى ضبط وزن الفرض (${track.singleExamWeightLabel} ضمن 100% فروض محروسة وفق المذكرة 142-08).`
         : `وزن الفرض المدخل (${rawWeight}) لا يطابق الوزن القانوني لمسلك ${track.shortCode} (${track.singleExamWeightLabel} لـ ${track.examsPerSemester} فروض/دورة).`,
@@ -877,9 +899,16 @@ export function auditMemo142Compliance(
 
   // 5. Remediation Plan & Need Groups Activation
   const hasRemediation =
-    template.pedagogicalContent.programmedRemediationBullets.some((b) => b.trim().length > 4) &&
+    template.pedagogicalContent.programmedRemediationBullets.some((b) => b.trim().length > 4) ||
     template.pedagogicalContent.remediationActions.length > 0;
-  if (stats.failed > 0) {
+  if (stats.present === 0) {
+    checks.push({
+      id: 'remediation',
+      label: 'خطة الدعم وتفييء مجموعات الحاجة',
+      status: 'info',
+      detail: 'بانتظار استيراد نقط التلاميذ لتشخيص المتعثرين وتفييء مجموعات الحاجة وفق المذكرة 142-08.',
+    });
+  } else if (stats.failed > 0) {
     if (hasRemediation) {
       checks.push({
         id: 'remediation',
@@ -905,7 +934,14 @@ export function auditMemo142Compliance(
   }
 
   // 6. Absence & Make-up Exam Governance (Memo 142-08)
-  if (stats.absent > 0) {
+  if (stats.total === 0) {
+    checks.push({
+      id: 'absences',
+      label: 'تدبير الغياب والاستدراك (المذكرة 142-08)',
+      status: 'info',
+      detail: 'بانتظار استيراد لائحة القسم للتحقق من حالات الغياب وبرمجة الفرض الاستدراكي.',
+    });
+  } else if (stats.absent > 0) {
     const documentedAbsences = stats.absentStudents.filter(
       (s) => (s.observation || '').trim().length >= 3
     ).length;

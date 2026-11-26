@@ -1,11 +1,17 @@
 import React, { useMemo, useState } from 'react';
 import {
+  Activity,
   AlertTriangle,
   Archive,
   BarChart3,
   CheckSquare,
+  Compass,
+  Download,
+  FileDown,
   FileSpreadsheet,
   FolderPlus,
+  GitCompare,
+  Image as ImageIcon,
   LineChart as LineChartIcon,
   Save,
   TrendingDown,
@@ -30,36 +36,53 @@ import {
   computeClassCouncilSummary,
   computeLongitudinalComparison,
 } from '../utils/pedagogicalAnalytics';
+import { AnalyticsSummaryExportModal } from './AnalyticsSummaryExportModal';
+import { ArchiveExamComparisonPanel } from './ArchiveExamComparisonPanel';
+import { CompetencyRadarPanel } from './CompetencyRadarPanel';
+import {
+  GaussDistributionDataset,
+  GaussDistributionPanel,
+} from './GaussDistributionPanel';
 
 interface AnalyticsAndCouncilViewProps {
   projects: ArchivedClassProject[];
+  activeDataset?: GaussDistributionDataset | null;
   hasActiveStudents: boolean;
   onSaveCurrentToArchive: () => Promise<void>;
   onCreateDemoCohort: () => Promise<void>;
+  onLoadSampleData?: () => void;
   onLoadProject: (project: ArchivedClassProject) => void;
   onOpenArchiveDrawer: () => void;
   onBackToWorkflow: () => void;
+  onGoToCustomizeItems?: () => void;
 }
 
-type AnalyticsTab = 'longitudinal' | 'council';
+type AnalyticsTab = 'gauss' | 'radar' | 'comparison' | 'longitudinal' | 'council';
 type TrajectoryFilter = 'all' | 'improved' | 'declined' | 'recovered';
 
 export const AnalyticsAndCouncilView: React.FC<AnalyticsAndCouncilViewProps> = ({
   projects,
+  activeDataset,
   hasActiveStudents,
   onSaveCurrentToArchive,
   onCreateDemoCohort,
+  onLoadSampleData,
   onLoadProject,
   onOpenArchiveDrawer,
   onBackToWorkflow,
+  onGoToCustomizeItems,
 }) => {
-  const [activeTab, setActiveTab] = useState<AnalyticsTab>('longitudinal');
+  const [activeTab, setActiveTab] = useState<AnalyticsTab>('gauss');
   const [selectedLongitudinalIds, setSelectedLongitudinalIds] = useState<string[] | null>(
     null
   );
   const [selectedCouncilIds, setSelectedCouncilIds] = useState<string[] | null>(null);
   const [trajectoryFilter, setTrajectoryFilter] = useState<TrajectoryFilter>('all');
   const [isBusy, setIsBusy] = useState(false);
+  const [isExportSummaryOpen, setIsExportSummaryOpen] = useState(false);
+  const [exportSummaryAutoFormat, setExportSummaryAutoFormat] = useState<
+    'png' | 'pdf' | null
+  >(null);
 
   // Auto-select chronological projects of the first/most common class for Longitudinal view when none explicitly picked
   const effectiveLongitudinalProjects = useMemo(() => {
@@ -300,15 +323,51 @@ export const AnalyticsAndCouncilView: React.FC<AnalyticsAndCouncilViewProps> = (
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-lg font-bold text-slate-900">
-              مختبر التتبع التطوري للأداء ومجالس الأقسام والتوجيه
+              مختبر التحليل الإحصائي (منحنى غوص 142-08) والتتبع التطوري ومجالس الأقسام
             </h1>
             <p className="mt-0.5 text-xs text-slate-500">
-              مقارنة تطور التلاميذ بين الفروض المتتالية (F1 ← F4) وتركيب حصيلة الأقسام والمواد لمجالس الأقسام والتوجيه انطلاقاً من الأرشيف المحلي
+              تمثيل توزيع معدلات القسم بمنحنى غوص الطبيعي وفق المذكرة 142-08، ومقارنة تطور التلاميذ بين الفروض المتتالية (F1 ← F4) وتركيب حصيلة مجالس الأقسام
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-1">
+            <div className="flex flex-wrap items-center gap-1 rounded-lg bg-slate-100 p-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab('gauss')}
+                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  activeTab === 'gauss'
+                    ? 'bg-white text-teal-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Activity className="h-3.5 w-3.5" />
+                منحنى غوص (142-08)
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('radar')}
+                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  activeTab === 'radar'
+                    ? 'bg-white text-teal-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Compass className="h-3.5 w-3.5" />
+                رادار الكفايات (Radar Chart)
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('comparison')}
+                className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  activeTab === 'comparison'
+                    ? 'bg-white text-teal-900 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <GitCompare className="h-3.5 w-3.5" />
+                مقارنة مع فرض أو دورة سابقة
+              </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('longitudinal')}
@@ -331,7 +390,47 @@ export const AnalyticsAndCouncilView: React.FC<AnalyticsAndCouncilViewProps> = (
                 }`}
               >
                 <BarChart3 className="h-3.5 w-3.5" />
-                لوحة مجالس الأقسام والتوجيه
+                مجالس الأقسام والتوجيه
+              </button>
+            </div>
+
+            {/* Export Analytics (PNG / PDF) for Educational Council Reports */}
+            <div className="inline-flex items-center rounded-lg border border-teal-700 bg-teal-700 text-white shadow-xs overflow-hidden shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setExportSummaryAutoFormat(null);
+                  setIsExportSummaryOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold hover:bg-teal-800 transition-colors whitespace-nowrap cursor-pointer"
+                title="معاينة وتصدير ملخص التحليلات البيانية (منحنى غوص، مخطط الرادار، ومقارنات الأرشيف) للمجلس التعليمي"
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span>تصدير التحليلات</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setExportSummaryAutoFormat('png');
+                  setIsExportSummaryOpen(true);
+                }}
+                className="inline-flex items-center gap-1 border-r border-teal-600 bg-teal-800/70 px-2 py-1.5 text-[11px] font-bold text-teal-50 hover:bg-teal-900 transition-colors cursor-pointer"
+                title="تحميل مباشر لملخص التحليلات بصيغة PNG"
+              >
+                <ImageIcon className="h-3 w-3" />
+                <span>PNG</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setExportSummaryAutoFormat('pdf');
+                  setIsExportSummaryOpen(true);
+                }}
+                className="inline-flex items-center gap-1 border-r border-teal-600 bg-teal-800/70 px-2 py-1.5 text-[11px] font-bold text-teal-50 hover:bg-teal-900 transition-colors cursor-pointer"
+                title="تحميل مباشر لملخص التحليلات بصيغة PDF (A4) للمجلس التعليمي"
+              >
+                <FileDown className="h-3 w-3" />
+                <span>PDF</span>
               </button>
             </div>
 
@@ -355,8 +454,41 @@ export const AnalyticsAndCouncilView: React.FC<AnalyticsAndCouncilViewProps> = (
         </div>
       </section>
 
-      {/* Empty State when fewer than 1 or 2 projects */}
-      {projects.length === 0 ? (
+      {/* TAB 0: Gauss Normal Distribution Curve per Memo 142-08 */}
+      {activeTab === 'gauss' ? (
+        <GaussDistributionPanel
+          activeDataset={activeDataset}
+          archivedProjects={projects}
+          onLoadSampleOrDemo={() => {
+            if (onLoadSampleData) {
+              onLoadSampleData();
+            } else {
+              void handleSeedDemo();
+            }
+          }}
+        />
+      ) : activeTab === 'radar' ? (
+        <CompetencyRadarPanel
+          activeDataset={
+            activeDataset
+              ? {
+                  ...activeDataset,
+                  itemDefinitions: activeDataset.itemDefinitions || [],
+                  studentItemScores: activeDataset.studentItemScores || {},
+                }
+              : null
+          }
+          archivedProjects={projects}
+          onGoToCustomizeItems={onGoToCustomizeItems}
+        />
+      ) : activeTab === 'comparison' ? (
+        <ArchiveExamComparisonPanel
+          activeDataset={activeDataset}
+          archivedProjects={projects}
+          onCreateDemoCohort={handleSeedDemo}
+          onSaveCurrentToArchive={onSaveCurrentToArchive}
+        />
+      ) : projects.length === 0 ? (
         <section className="rounded-xl border border-slate-200 bg-white p-10 text-center">
           <FolderPlus className="mx-auto mb-3 h-10 w-10 text-teal-700" strokeWidth={1.6} />
           <h2 className="text-base font-bold text-slate-900">
@@ -969,6 +1101,18 @@ export const AnalyticsAndCouncilView: React.FC<AnalyticsAndCouncilViewProps> = (
           )}
         </div>
       )}
+
+      {/* Unified Visual Summary Export Modal (Gauss + Radar + Archive Comparison -> PNG / PDF) */}
+      <AnalyticsSummaryExportModal
+        isOpen={isExportSummaryOpen}
+        initialAutoExport={exportSummaryAutoFormat}
+        onClose={() => {
+          setIsExportSummaryOpen(false);
+          setExportSummaryAutoFormat(null);
+        }}
+        activeDataset={activeDataset}
+        archivedProjects={projects}
+      />
     </div>
   );
 };

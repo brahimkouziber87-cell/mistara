@@ -9,19 +9,30 @@ import {
   IdCard,
   Loader2,
   Maximize2,
+  Palette,
   Paperclip,
   Printer,
   SlidersHorizontal,
   Trash2,
+  Type,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
+import {
+  REPORT_COLOR_THEMES,
+  REPORT_FONT_OPTIONS,
+  REPORT_FRAME_OPTIONS,
+  TEMPLATE_PRESETS,
+} from '../data/presets';
 import {
   ArchivedClassProject,
   ComputedStats,
   ExamItemDefinition,
   ExamPdfAttachment,
   MassarMetadata,
+  ReportFontFamily,
+  ReportFontScale,
+  ReportFrameStyle,
   ReportTemplateSchema,
   StudentItemScores,
   StudentRecord,
@@ -43,7 +54,9 @@ import {
 } from './IndividualRemediationCardsSheet';
 import { RemediationCardsConfigPanel } from './RemediationCardsConfigPanel';
 import { PreviewDocumentMode, ReportDocument } from './ReportDocument';
+import { resolveReportFrameStyle } from './ReportSheetFrame';
 import { ScoreHistogramCard } from './ScoreHistogramCard';
+import { GaussDistributionPanel } from './GaussDistributionPanel';
 
 interface ReportPreviewStepProps {
   template: ReportTemplateSchema;
@@ -380,6 +393,243 @@ export const ReportPreviewStep: React.FC<ReportPreviewStepProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Live Quick Appearance Bar (Report Template Structure, Fonts, Color Palettes, Page Frame, Font Scale) */}
+        {onUpdateTemplate && (
+          <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-lg border border-slate-200/90 bg-slate-50/75 px-3 py-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 whitespace-nowrap">
+                <FileText className="h-3.5 w-3.5 text-teal-700" />
+                قالب الهيكل:
+              </span>
+              <select
+                aria-label="اختيار قالب هيكل التقرير"
+                value={
+                  TEMPLATE_PRESETS.some((p) => p.id === template.id)
+                    ? template.id
+                    : TEMPLATE_PRESETS[0].id
+                }
+                onChange={(e) => {
+                  const selectedPreset = TEMPLATE_PRESETS.find(
+                    (p) => p.id === e.target.value
+                  );
+                  if (!selectedPreset) return;
+                  onUpdateTemplate((prev) => {
+                    const clonedSections = selectedPreset.sections.map((s) => ({ ...s }));
+                    const clonedSignatures = selectedPreset.signatures.map((sig) => ({
+                      ...sig,
+                    }));
+                    return {
+                      ...prev,
+                      id: selectedPreset.id,
+                      name: selectedPreset.name,
+                      focusBadge: selectedPreset.focusBadge,
+                      useCaseTag: selectedPreset.useCaseTag,
+                      sections: clonedSections,
+                      signatures: clonedSignatures,
+                      hasTwoPages: clonedSections.some((s) => s.enabled && s.page === 2),
+                      brackets: selectedPreset.brackets,
+                      passThreshold: selectedPreset.passThreshold,
+                      excellenceThreshold: selectedPreset.excellenceThreshold,
+                      headerConfig: {
+                        ...prev.headerConfig,
+                        reportTitle:
+                          (prev.headerConfig.reportLanguage || 'ar') === 'ar'
+                            ? selectedPreset.headerConfig.reportTitle
+                            : prev.headerConfig.reportTitle,
+                        reportSubtitle:
+                          (prev.headerConfig.reportLanguage || 'ar') === 'ar'
+                            ? selectedPreset.headerConfig.reportSubtitle
+                            : prev.headerConfig.reportSubtitle,
+                        appendixTitle:
+                          (prev.headerConfig.reportLanguage || 'ar') === 'ar'
+                            ? selectedPreset.headerConfig.appendixTitle ||
+                              prev.headerConfig.appendixTitle
+                            : prev.headerConfig.appendixTitle,
+                      },
+                      styleConfig: {
+                        ...selectedPreset.styleConfig,
+                        fontScale: prev.styleConfig.fontScale ?? 'standard',
+                      },
+                    };
+                  });
+                }}
+                className="max-w-[235px] rounded-md border border-teal-700/40 bg-white px-2 py-1 text-xs font-bold text-slate-900 focus:border-teal-700 focus:outline-none"
+              >
+                {TEMPLATE_PRESETS.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.focusBadge ? preset.focusBadge.split(':')[0] + ' — ' : ''}
+                    {preset.name.split(' (')[0]}
+                  </option>
+                ))}
+              </select>
+
+              <span className="text-slate-300" aria-hidden="true">|</span>
+
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 whitespace-nowrap">
+                <Type className="h-3.5 w-3.5 text-teal-700" />
+                الخط:
+              </span>
+              <select
+                aria-label="اختيار خط التقرير"
+                value={template.styleConfig.fontFamily}
+                onChange={(e) =>
+                  onUpdateTemplate((prev) => ({
+                    ...prev,
+                    styleConfig: {
+                      ...prev.styleConfig,
+                      fontFamily: e.target.value as ReportFontFamily,
+                    },
+                  }))
+                }
+                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-900 focus:border-teal-700 focus:outline-none"
+              >
+                {REPORT_FONT_OPTIONS.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.name}
+                  </option>
+                ))}
+              </select>
+
+              <span className="text-slate-300" aria-hidden="true">|</span>
+
+              <span className="text-[11px] font-bold text-slate-700 whitespace-nowrap">
+                الإطار:
+              </span>
+              <select
+                aria-label="اختيار إطار صفحة التقرير"
+                value={resolveReportFrameStyle(template.styleConfig)}
+                onChange={(e) => {
+                  const nextFrame = e.target.value as ReportFrameStyle;
+                  onUpdateTemplate((prev) => ({
+                    ...prev,
+                    styleConfig: {
+                      ...prev.styleConfig,
+                      frameStyle: nextFrame,
+                      showOuterFrame: nextFrame !== 'none',
+                    },
+                  }));
+                }}
+                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-900 focus:border-teal-700 focus:outline-none"
+              >
+                {REPORT_FRAME_OPTIONS.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.name}
+                  </option>
+                ))}
+              </select>
+
+              <span className="text-slate-300" aria-hidden="true">|</span>
+
+              <span className="text-[11px] font-bold text-slate-700 whitespace-nowrap">
+                المبيان:
+              </span>
+              <select
+                aria-label="اختيار نمط المبيان في التقرير"
+                value={template.styleConfig.chartType}
+                onChange={(e) => {
+                  const nextChart = e.target
+                    .value as ReportTemplateSchema['styleConfig']['chartType'];
+                  onUpdateTemplate((prev) => ({
+                    ...prev,
+                    styleConfig: {
+                      ...prev.styleConfig,
+                      chartType: nextChart,
+                    },
+                  }));
+                }}
+                className="rounded-md border border-slate-300 bg-white px-2 py-1 text-xs font-semibold text-slate-900 focus:border-teal-700 focus:outline-none"
+              >
+                <option value="gauss">منحنى غوص (Gauss)</option>
+                <option value="donut">مبيان دائري (Donut)</option>
+                <option value="bar">أعمدة عمودية</option>
+                <option value="horizontal-bar">أشرطة أفقية</option>
+                <option value="none">بدون مبيان</option>
+              </select>
+
+              <span className="text-slate-300" aria-hidden="true">|</span>
+
+              <div className="flex items-center gap-0.5 rounded-md border border-slate-200 bg-white p-0.5">
+                {(
+                  [
+                    { id: 'compact', label: 'مكثف' },
+                    { id: 'standard', label: 'قياسي' },
+                    { id: 'comfortable', label: 'مريح' },
+                  ] as { id: ReportFontScale; label: string }[]
+                ).map((sc) => {
+                  const active = (template.styleConfig.fontScale || 'standard') === sc.id;
+                  return (
+                    <button
+                      key={sc.id}
+                      type="button"
+                      onClick={() =>
+                        onUpdateTemplate((prev) => ({
+                          ...prev,
+                          styleConfig: { ...prev.styleConfig, fontScale: sc.id },
+                        }))
+                      }
+                      className={`rounded px-2 py-0.5 text-[11px] font-semibold transition-colors whitespace-nowrap cursor-pointer ${
+                        active
+                          ? 'bg-slate-900 text-white'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      {sc.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-700 whitespace-nowrap">
+                <Palette className="h-3.5 w-3.5 text-teal-700" />
+                الألوان:
+              </span>
+              <div className="flex items-center gap-1">
+                {REPORT_COLOR_THEMES.map((theme) => {
+                  const isActive =
+                    template.styleConfig.accentColor.toLowerCase() ===
+                      theme.accentColor.toLowerCase() &&
+                    (template.styleConfig.secondaryAccent || '#1e293b').toLowerCase() ===
+                      theme.secondaryAccent.toLowerCase();
+                  return (
+                    <button
+                      key={theme.id}
+                      type="button"
+                      title={`${theme.name} — ${theme.subtitle}`}
+                      aria-label={theme.name}
+                      onClick={() =>
+                        onUpdateTemplate((prev) => ({
+                          ...prev,
+                          styleConfig: {
+                            ...prev.styleConfig,
+                            accentColor: theme.accentColor,
+                            secondaryAccent: theme.secondaryAccent,
+                          },
+                        }))
+                      }
+                      className={`flex h-6 w-6 overflow-hidden rounded-md border transition-transform cursor-pointer ${
+                        isActive
+                          ? 'scale-110 border-slate-900 ring-2 ring-slate-900/20'
+                          : 'border-slate-300 hover:scale-105'
+                      }`}
+                    >
+                      <span
+                        className="h-full w-3.5"
+                        style={{ backgroundColor: theme.accentColor }}
+                      />
+                      <span
+                        className="h-full w-2.5"
+                        style={{ backgroundColor: theme.secondaryAccent }}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3">
           <div className="flex items-center gap-1 rounded-lg bg-slate-100 p-1">
@@ -803,6 +1053,23 @@ export const ReportPreviewStep: React.FC<ReportPreviewStepProps> = ({
           </section>
         );
       })()}
+
+      <GaussDistributionPanel
+        activeDataset={{
+          id: 'preview-workspace',
+          label:
+            [metadata.className || 'القسم الحالي', metadata.examNumber]
+              .filter(Boolean)
+              .join(' · ') || 'القسم النشط',
+          isLiveWorkspace: true,
+          students,
+          metadata,
+          template,
+          stats,
+        }}
+        archivedProjects={archivedProjects}
+        compact
+      />
 
       <ScoreHistogramCard
         students={students}

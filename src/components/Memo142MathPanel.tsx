@@ -223,7 +223,7 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
                 htmlFor="memo142-track-select"
                 className="mb-1 block text-xs font-bold text-slate-800"
               >
-                الشعبة / المسلك بالتأهيلي (حسب التوجيهات التربوية ومذكرة التقويم)
+                الشعبة / المسلك بالتأهيلي (حسب التوجيهات التربوية والمذكرة 142-08)
               </label>
               <select
                 id="memo142-track-select"
@@ -299,7 +299,7 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
                 {activeTrack.examsPerSemester} فروض/دورة · {activeTrack.officialDuration}
               </div>
               <div className="mt-0.5 text-[11px] text-slate-500">
-                سنوياً: {activeTrack.annualExamsTotal} فروض ({activeTrack.annualExamHours}س) · الغلاف: {activeTrack.weeklyHours}
+                سنوياً: {activeTrack.annualExamsTotal} فروض ({activeTrack.annualExamHours}س) + {activeTrack.homeworksPerSemester} فروض منزلية تكوينية/دورة · الغلاف: {activeTrack.weeklyHours}
               </div>
             </div>
 
@@ -356,7 +356,9 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
                 {audit.turnaroundDays !== null ? (
                   <span
                     className={
-                      audit.turnaroundDays >= 0 && audit.turnaroundDays <= 7
+                      audit.turnaroundDays < 0
+                        ? 'text-red-700'
+                        : audit.turnaroundDays <= 7
                         ? 'text-emerald-700'
                         : audit.turnaroundDays <= 14
                         ? 'text-teal-700'
@@ -403,6 +405,7 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
                       <th className="px-2 py-2 text-center">المعامل</th>
                       <th className="px-2 py-2">الغلاف الأسبوعي</th>
                       <th className="px-2 py-2 text-center">د1 / د2 (المجموع)</th>
+                      <th className="px-2 py-2 text-center">ف. منزلية/دورة</th>
                       <th className="px-2 py-2 text-center">المدة (س)</th>
                       <th className="px-2 py-2 text-center">ساعات/سنة</th>
                       <th className="px-3 py-2">طبيعة التقويم الإشهادي</th>
@@ -437,6 +440,9 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
                           <td className="px-2 py-2 text-center font-mono tabular-nums whitespace-nowrap">
                             {track.examsPerSemester} + {track.examsPerSemester} ({track.annualExamsTotal})
                           </td>
+                          <td className="px-2 py-2 text-center font-mono tabular-nums whitespace-nowrap text-slate-600">
+                            {track.homeworksPerSemester}
+                          </td>
                           <td className="px-2 py-2 text-center whitespace-nowrap">
                             {track.officialDuration}
                           </td>
@@ -467,11 +473,11 @@ export const Memo142MathPanel: React.FC<Memo142MathPanelProps> = ({
             </div>
           )}
 
-          {/* Live 5-Point Compliance Audit Grid */}
+          {/* Live 6-Point Compliance Audit Grid */}
           <div className="space-y-2">
             <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
               <ClipboardCheck className="h-4 w-4 text-teal-700" />
-              <span>التدقيق الآلي لمطابقة التقرير مع مذكرة التقويم</span>
+              <span>التدقيق الآلي لمطابقة التقرير مع المذكرة الوزارية 142-08</span>
             </div>
             <div className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white">
               {audit.checks.map((chk) => (

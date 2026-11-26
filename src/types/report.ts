@@ -108,6 +108,7 @@ export type ReportSectionType =
   | 'kpi_summary'
   | 'brackets_table'
   | 'chart_distribution'
+  | 'gauss_curve_chart'
   | 'brackets_and_donut_split'
   | 'top_and_struggling'
   | 'pedagogical_diagnosis'
@@ -177,20 +178,31 @@ export type ReportFontFamily =
   | 'cairo'
   | 'ibm-plex-sans-arabic'
   | 'amiri'
+  | 'noto-naskh-arabic'
   | 'noto-kufi-arabic'
-  | 'tajawal';
+  | 'tajawal'
+  | 'almarai'
+  | 'readex-pro';
 
 export type ReportFontScale = 'compact' | 'standard' | 'comfortable';
+
+export type ReportFrameStyle =
+  | 'double-inset'
+  | 'royal-corners'
+  | 'classic-double'
+  | 'top-bottom-bands'
+  | 'none';
 
 export interface TemplateStyleConfig {
   accentColor: string;
   secondaryAccent?: string;
   borderStyle: 'official-double' | 'classic-grid' | 'modern-minimal' | 'section-banners';
+  frameStyle?: ReportFrameStyle;
   fontFamily: ReportFontFamily;
   fontScale?: ReportFontScale;
   showOuterFrame: boolean;
   tableHeaderBg: 'tinted' | 'solid-accent' | 'neutral';
-  chartType: 'bar' | 'horizontal-bar' | 'donut' | 'none';
+  chartType: 'bar' | 'horizontal-bar' | 'donut' | 'gauss' | 'none';
 }
 
 export type RemediationCardTargetFilter =
@@ -275,6 +287,8 @@ export interface ItemCompetencyStat {
 export interface ReportTemplateSchema {
   id: string;
   name: string;
+  focusBadge?: string;
+  useCaseTag?: string;
   sourceType: 'preset' | 'analyzed-image' | 'analyzed-pdf' | 'analyzed-docx' | 'analyzed-text';
   sourceFileName?: string;
   analysisSummary?: string;
