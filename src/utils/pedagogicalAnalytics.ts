@@ -15,7 +15,11 @@ import {
   StudentItemScores,
   StudentRecord,
 } from '../types/report';
-import { computeDocimologicalSummary, extractExamNumberFromHeader } from './massarParser';
+import {
+  computeDocimologicalSummary,
+  extractExamNumberFromHeader,
+  readExcelFile,
+} from './massarParser';
 
 export interface StudentWeakItemDetail {
   item: ExamItemDefinition;
@@ -757,8 +761,7 @@ export async function parseItemScoresFromExcelFile(
   itemDefinitions: ExamItemDefinition[],
   existingScores: StudentItemScores = {}
 ): Promise<ItemScoresImportResult> {
-  const buffer = await file.arrayBuffer();
-  const wb = XLSX.read(buffer, { type: 'array' });
+  const wb = await readExcelFile(file);
   return parseItemScoresWorkbook(wb, students, itemDefinitions, existingScores);
 }
 

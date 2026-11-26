@@ -169,10 +169,10 @@ function normalizeArabicForMatch(text: string): string {
 }
 
 const METADATA_LABEL_PATTERN =
-  /^(?:الاكاديمية|المديرية|النيابة|المؤسسة|اسم المؤسسة|رمز المؤسسة|رقم المؤسسة|الموسم|السنة الدراسية|المستوى|الشعبة|المسلك|القسم|الفوج|المادة|الاستاذ|اسم الاستاذ|استاذ المادة|المدرس|الدورة|الاسدوس|السلك|تاريخ\s*الفرض|تاريخ\s*الانجاز|تاريخ\s*التمرير|مدة\s*الانجاز|المدة|المعامل|رقم التلميذ|رقم الترتيب|رمز مسار|النسب|الاسم|تاريخ\s*الازدياد|ملاحظات|ملاحظة|تقدير|توقيع|خاتم|النقطة|النقط|الفرض|الانشطة|المراقبة المستمرة|المعدل|الرتبة|المجموع|académie|direction|délégation|etablissement|établissement|code\s+[ée]tablissement|année scolaire|niveau|filière|classe|groupe|matière|discipline|professeur|enseignant|semestre|cycle|date\s+du\s+contr[ôo]le|dur[ée]e|coefficient|observation[s]?|remarque[s]?|appr[ée]ciation|signature|cachet|note[s]?|devoir[s]?|moyenne|nom|pr[ée]nom|date\s+de\s+naissance|code\s+massar)\b/i;
+  /^(?:الاكاديمية|المديرية|م\.?\s*الاقليمية|النيابة|المؤسسة|اسم المؤسسة|رمز المؤسسة|رقم المؤسسة|الموسم|السنة الدراسية|المستوى|الشعبة|المسلك|القسم|الفوج|المادة|الاستاذ|اسم الاستاذ|استاذ المادة|المدرس|الدورة|الاسدوس|السلك|تاريخ\s*الفرض|تاريخ\s*الانجاز|تاريخ\s*التمرير|مدة\s*الانجاز|المدة|المعامل|رقم التلميذ|رقم الترتيب|رمز مسار|النسب|الاسم|تاريخ\s*الازدياد|ملاحظات|ملاحظة|تقدير|توقيع|خاتم|النقطة|النقط|الفرض|الانشطة|المراقبة المستمرة|المعدل|الرتبة|المجموع|académie|direction|délégation|etablissement|établissement|code\s+[ée]tablissement|année scolaire|niveau|filière|classe|groupe|matière|discipline|professeur|enseignant|semestre|cycle|date\s+du\s+contr[ôo]le|dur[ée]e|coefficient|observation[s]?|remarque[s]?|appr[ée]ciation|signature|cachet|note[s]?|devoir[s]?|moyenne|nom|pr[ée]nom|date\s+de\s+naissance|code\s+massar)\b/i;
 
 const TABLE_HEADER_OR_NOISE_EXACT_PATTERN =
-  /^(?:\(ة\)|ة|الاكاديمية|المديرية|النيابة|المؤسسة|اسم المؤسسة|رمز المؤسسة|رقم المؤسسة|الموسم الدراسي|الموسم|السنة الدراسية|المستوى الدراسي|المستوى|الشعبة|المسلك|القسم|الفوج|المادة الدراسية|مادة التدريس|المادة|الاستاذ(?:\s*\(ة\)|\s*[/\\]\s*ة)?|اسم الاستاذ(?:\s*\(ة\)|\s*[/\\]\s*ة)?|استاذ(?:\s*\(ة\)|\s*[/\\]\s*ة)?(?:\s+المادة)?|المدرس(?:\s*\(ة\)|\s*[/\\]\s*ة)?|الدورة|الاسدوس|السلك|تاريخ\s*الفرض|تاريخ\s*الانجاز|مدة\s*الانجاز|المدة|المعامل|ملاحظات(?:\s+الاستاذ(?:\s*\(ة\))?)?|ملاحظة(?:\s+الاستاذ(?:\s*\(ة\))?)?|تقدير(?:\s+الاستاذ(?:\s*\(ة\))?)?|توقيع(?:\s+الاستاذ(?:\s*\(ة\))?|\s+المدير|\s+المفتش)?|خاتم(?:\s+المؤسسة)?|النتائج|النقطة|النقط|نقط\s+المراقبة\s+المستمرة|معدل(?:\s+المراقبة|\s+القسم|\s+الدورة)?|الفرض(?:\s+(?:الاول|الثاني|الثالث|الثال[تث]|الرابع|\d+))?|الانشطة(?:\s+المندمجة)?|المراقبة المستمرة|الامتحان|الاختبار|النسب(?:\s+و\s*الاسم)?|الاسم(?:\s+الكامل|\s+و\s*النسب)?|تاريخ\s+الازدياد|رمز\s+مسار|رقم\s+(?:التلميذ|الترتيب|مسار)|الرتبة|المجموع|الحضور|الغياب|النوع|الجنس|المملكة المغربية|وزارة التربية الوطنية.*|académie|direction|délégation|etablissement|établissement|année scolaire|niveau|filière|classe|groupe|matière|discipline|professeur|enseignant|semestre|cycle|observation[s]?|remarque[s]?|appr[ée]ciation|signature|cachet|note[s]?|devoir[s]?|moyenne|nom(?:\s+et\s+pr[ée]nom)?|pr[ée]nom|code(?:\s+massar)?|date\s+de\s+naissance|total)$/i;
+  /^(?:\(ة\)|ة|الاكاديمية|المديرية|المديرية الاقليمية|م\.?\s*الاقليمية|النيابة|المؤسسة|اسم المؤسسة|رمز المؤسسة|رقم المؤسسة|الموسم الدراسي|الموسم|السنة الدراسية|المستوى الدراسي|المستوى|الشعبة|المسلك|القسم|الفوج|المادة الدراسية|مادة التدريس|المادة|الاستاذ(?:\s*\(ة\)|\s*[/\\]\s*ة)?|اسم الاستاذ(?:\s*\(ة\)|\s*[/\\]\s*ة)?|استاذ(?:\s*\(ة\)|\s*[/\\]\s*ة)?(?:\s+المادة)?|المدرس(?:\s*\(ة\)|\s*[/\\]\s*ة)?|الدورة|الاسدوس|السلك|تاريخ\s*الفرض|تاريخ\s*الانجاز|مدة\s*الانجاز|المدة|المعامل|ملاحظات(?:\s+الاستاذ(?:\s*\(ة\))?)?|ملاحظة(?:\s+الاستاذ(?:\s*\(ة\))?)?|تقدير(?:\s+الاستاذ(?:\s*\(ة\))?)?|توقيع(?:\s+الاستاذ(?:\s*\(ة\))?|\s+المدير|\s+المفتش)?|خاتم(?:\s+المؤسسة)?|النتائج|النقطة|النقط|نقط\s+المراقبة\s+المستمرة|معدل(?:\s+المراقبة|\s+القسم|\s+الدورة)?|الفرض(?:\s+(?:الاول|الثاني|الثالث|الثال[تث]|الرابع|\d+))?|الانشطة(?:\s+المندمجة)?|المراقبة المستمرة|الامتحان|الاختبار|النسب(?:\s+و\s*الاسم)?|الاسم(?:\s+الكامل|\s+و\s*النسب)?|تاريخ\s+الازدياد|رمز\s+مسار|رقم\s+(?:التلميذ|الترتيب|مسار)|الرتبة|المجموع|الحضور|الغياب|النوع|الجنس|المملكة المغربية|وزارة التربية الوطنية.*|académie|direction|délégation|etablissement|établissement|année scolaire|niveau|filière|classe|groupe|matière|discipline|professeur|enseignant|semestre|cycle|observation[s]?|remarque[s]?|appr[ée]ciation|signature|cachet|note[s]?|devoir[s]?|moyenne|nom(?:\s+et\s+pr[ée]nom)?|pr[ée]nom|code(?:\s+massar)?|date\s+de\s+naissance|total)$/i;
 
 const NON_VALUE_FRAGMENT_PATTERN =
   /(?:ملاحظات|ملاحظة|تقدير|توقيع|خاتم|راي\s+الاستاذ|قرار\s+المجلس|رمز\s*مسار|تاريخ\s*الازدياد|رقم\s+التلميذ|الانشطة\s+المندمجة|المراقبة\s+المستمرة|الفرض\s+(?:الاول|الثاني|الثالث|الرابع|\d+)|observation[s]?|remarque[s]?|signature|cachet|date\s+de\s+naissance|code\s+massar)/i;
@@ -371,7 +371,7 @@ function extractInlineAfterDelimiter(cell: string, normalizedLabelRegex: RegExp)
 function splitMultiKeyCellSegments(line: string): string[] {
   // Split lines that contain multiple "Label : Value   Label2 : Value2" pairs separated by 2+ spaces or tabs
   const parts = line
-    .split(/\t+|\s{2,}(?=(?:الأكاديمية|الاكاديمية|المديرية|النيابة|المؤسسة|الموسم|السنة|السلك|المستوى|الشعبة|المسلك|القسم|الفوج|المادة|الأستاذ|الاستاذ|الدورة|الأسدوس|الاسدوس|تاريخ|المعامل|المدة|Académie|Direction|Établissement|Etablissement|Année|Niveau|Classe|Matière|Professeur|Semestre)\b)/i)
+    .split(/\t+|\s{2,}(?=(?:الأكاديمية|الاكاديمية|المديرية|م\.?\s*ال[إا]قليمية|النيابة|المؤسسة|الموسم|السنة|السلك|المستوى|الشعبة|المسلك|القسم|الفوج|المادة|الأستاذ|الاستاذ|الدورة|الأسدوس|الاسدوس|تاريخ|المعامل|المدة|Académie|Direction|Établissement|Etablissement|Année|Niveau|Classe|Matière|Professeur|Semestre)\b)/i)
     .map((s) => s.trim())
     .filter(Boolean);
   return parts.length > 0 ? parts : [line];
@@ -517,12 +517,14 @@ function extractMetadataFromRows(
               'directorate',
               extractInlineAfterDelimiter(
                 cell,
-                /^(?:المديرية الاقليمية(?:\s+ب)?|م\.?\s*الاقليمية|المديرية|مديرية|النيابة|نيابة|délégation|direction\s+provinciale)/i
+                /^(?:المديرية الاقليمية(?:\s+ب)?|م\.?\s*الاقليمية(?:\s+ب)?|المديرية|مديرية|النيابة|نيابة|délégation|direction\s+provinciale)/i
               )
             );
             assignFieldValue(
               'directorate',
-              inline || findAdjacentValue('directorate') || (/^المديرية الاقليمية\s+\S+/i.test(normCell) ? cell : ''),
+              inline ||
+                findAdjacentValue('directorate') ||
+                (/^(?:المديرية الاقليمية|م\.?\s*الاقليمية)\s+\S+/i.test(normCell) ? cell : ''),
               'cell'
             );
             continue;
@@ -903,7 +905,7 @@ function isSubHeaderRow(
 
   for (let c = 0; c < width; c++) {
     const rawDirect = normalizeCell(rows[rowIndex]?.[c]);
-    if (!rawDirect) continue;
+    if (!rawDirect || /^[-–—_./…\s]+$/.test(rawDirect)) continue;
     const directVal = normalizeArabicForMatch(rawDirect);
     const topLabel = normalizeArabicForMatch(
       getMergedCellNormalized(rows, merges, headerIdx, c)
@@ -999,7 +1001,7 @@ function parseSingleSheetCore(
       : '';
 
     const rawSubLabel = subDirect || (subMerged !== topLabel ? subMerged : '');
-    const subLabel = /^[-–—_./]+$/.test(rawSubLabel) ? '' : rawSubLabel;
+    const subLabel = /^[-–—_./…\s]+$/.test(rawSubLabel) ? '' : rawSubLabel;
     const aboveTop =
       headerIdx > 0 ? getMergedCellNormalized(rows, merges, headerIdx - 1, c) : '';
 
@@ -1413,16 +1415,26 @@ export function parseMassarSheet(
 
 export async function readExcelFile(file: File): Promise<XLSX.WorkBook> {
   const buffer = await file.arrayBuffer();
-  const isCsvLike = /\.(?:csv|tsv|txt)$/i.test(file.name) || file.type === 'text/csv';
+  const isCsvLike =
+    /\.(?:csv|tsv|txt)$/i.test(file.name) ||
+    file.type === 'text/csv' ||
+    file.type === 'text/tab-separated-values';
   if (isCsvLike) {
+    const bytes = new Uint8Array(buffer);
     let text = '';
-    try {
-      text = new TextDecoder('utf-8', { fatal: true }).decode(buffer);
-    } catch {
+    if (bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe) {
+      text = new TextDecoder('utf-16le').decode(buffer);
+    } else if (bytes.length >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff) {
+      text = new TextDecoder('utf-16be').decode(buffer);
+    } else {
       try {
-        text = new TextDecoder('windows-1256').decode(buffer);
+        text = new TextDecoder('utf-8', { fatal: true }).decode(buffer);
       } catch {
-        text = new TextDecoder('utf-8').decode(buffer);
+        try {
+          text = new TextDecoder('windows-1256').decode(buffer);
+        } catch {
+          text = new TextDecoder('utf-8').decode(buffer);
+        }
       }
     }
     return XLSX.read(text, { type: 'string' });
