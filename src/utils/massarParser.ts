@@ -53,6 +53,7 @@ export function extractExamNumberFromHeader(rawLabel: string | undefined | null)
   const cleaned = normalizeDigitsToWestern(String(rawLabel))
     .replace(/\s*\((?:عمود\s+[A-Z]+|\d+)\)\s*$/i, '')
     .replace(/\s*—\s*(?:عمود\s+[A-Z]+|\d+)\s*$/i, '')
+    .replace(/\s*[-–—]\s*(?:النقطة|نقطة|note|notes)\s*$/i, '')
     .replace(/^(?:نقطة|نقط|عمود|رقم)\s+/i, '')
     .replace(/\s+/g, ' ')
     .trim();
@@ -509,14 +510,14 @@ function extractMetadataFromRows(
           }
 
           if (
-            /^(?:[:：]\s*)?(?:المديرية|مديرية|النيابة|نيابة|délégation|direction)/i.test(normCell) ||
-            (/المديرية|النيابة|délégation|direction/i.test(normCell) && /[:：]/.test(normCell))
+            /^(?:[:：]\s*)?(?:المديرية|مديرية|م\.?\s*الاقليمية|النيابة|نيابة|délégation|direction)/i.test(normCell) ||
+            (/(?:المديرية|م\.?\s*الاقليمية|النيابة|délégation|direction)/i.test(normCell) && /[:：]/.test(normCell))
           ) {
             const inline = sanitizeMetadataField(
               'directorate',
               extractInlineAfterDelimiter(
                 cell,
-                /^(?:المديرية الاقليمية(?:\s+ب)?|المديرية|مديرية|النيابة|نيابة|délégation|direction\s+provinciale)/i
+                /^(?:المديرية الاقليمية(?:\s+ب)?|م\.?\s*الاقليمية|المديرية|مديرية|النيابة|نيابة|délégation|direction\s+provinciale)/i
               )
             );
             assignFieldValue(
@@ -997,7 +998,8 @@ function parseSingleSheetCore(
       ? getMergedCellNormalized(rows, merges, headerIdx + 1, c)
       : '';
 
-    const subLabel = subDirect || (subMerged !== topLabel ? subMerged : '');
+    const rawSubLabel = subDirect || (subMerged !== topLabel ? subMerged : '');
+    const subLabel = /^[-–—_./]+$/.test(rawSubLabel) ? '' : rawSubLabel;
     const aboveTop =
       headerIdx > 0 ? getMergedCellNormalized(rows, merges, headerIdx - 1, c) : '';
 
@@ -1411,6 +1413,20 @@ export function parseMassarSheet(
 
 export async function readExcelFile(file: File): Promise<XLSX.WorkBook> {
   const buffer = await file.arrayBuffer();
+  const isCsvLike = /\.(?:csv|tsv|txt)$/i.test(file.name) || file.type === 'text/csv';
+  if (isCsvLike) {
+    let text = '';
+    try {
+      text = new TextDecoder('utf-8', { fatal: true }).decode(buffer);
+    } catch {
+      try {
+        text = new TextDecoder('windows-1256').decode(buffer);
+      } catch {
+        text = new TextDecoder('utf-8').decode(buffer);
+      }
+    }
+    return XLSX.read(text, { type: 'string' });
+  }
   return XLSX.read(buffer, { type: 'array' });
 }
 
