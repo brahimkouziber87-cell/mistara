@@ -321,7 +321,6 @@ export function buildStudentRemediationPlan(
         : `تحكم جزئي غير كافٍ؛ يحتاج المتعلم(ة) إلى تجاوز الصعوبات المرصودة في (${topWeakItem?.item.competency || weaknesses.slice(0, 2).join('، ') || examTopic}).`;
     autoExercise =
       topWeakItem?.item.remediationTask?.trim() ||
-      remediationBullets[1] ||
       remediationBullets[0] ||
       config.defaultExerciseTask;
     checklistItems =
@@ -1001,33 +1000,29 @@ export const IndividualRemediationCardsSheet: React.FC<
                           config.showParentSignature ? 'grid-cols-3' : 'grid-cols-2'
                         } gap-1.5 text-center text-[7.5px]`}
                       >
-                        <div className="rounded border border-slate-200 bg-slate-50/50 px-1.5 py-1 flex flex-col justify-between">
-                          <div className="font-bold" style={{ color: accent }}>
+                        <div className="rounded border border-slate-200 bg-slate-50/50 px-1.5 py-1 flex flex-col items-center justify-between gap-0.5 min-w-0">
+                          <div className="font-bold leading-tight" style={{ color: accent }}>
                             {labels.cardSigTeacher}
                           </div>
-                          <div className="mt-0.5 flex items-center justify-between gap-1">
-                            <div className="truncate text-start font-semibold text-slate-800">
-                              {metadata.teacherName || '..........'}
-                            </div>
-                            <div className="flex shrink-0 items-center justify-center">
-                              {(template.headerConfig.teacherSignatureMode || 'manual') === 'image' ? (
-                                template.headerConfig.teacherSignatureImage ? (
-                                  <img
-                                    src={template.headerConfig.teacherSignatureImage}
-                                    alt="توقيع الأستاذ"
-                                    className="max-h-5 max-w-[68px] object-contain"
-                                  />
-                                ) : null
-                              ) : template.headerConfig.teacherSignatureText?.trim() ? (
-                                <div
-                                  className="max-w-[70px] truncate font-serif text-[8px] font-bold italic"
-                                  style={{ color: accent }}
-                                >
-                                  {template.headerConfig.teacherSignatureText.trim()}
-                                </div>
-                              ) : null}
-                            </div>
+                          <div className="w-full truncate text-center text-[7px] font-semibold text-slate-700">
+                            {metadata.teacherName || '..........'}
                           </div>
+                          {(template.headerConfig.teacherSignatureMode || 'manual') === 'image' ? (
+                            template.headerConfig.teacherSignatureImage ? (
+                              <img
+                                src={template.headerConfig.teacherSignatureImage}
+                                alt="توقيع الأستاذ"
+                                className="max-h-4 max-w-full object-contain"
+                              />
+                            ) : null
+                          ) : template.headerConfig.teacherSignatureText?.trim() ? (
+                            <div
+                              className="w-full truncate text-center font-serif text-[7.5px] font-bold italic leading-tight"
+                              style={{ color: accent }}
+                            >
+                              {template.headerConfig.teacherSignatureText.trim()}
+                            </div>
+                          ) : null}
                         </div>
 
                         <div className="rounded border border-slate-200 bg-slate-50/50 px-1.5 py-1">

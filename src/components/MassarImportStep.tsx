@@ -1279,7 +1279,10 @@ export const MassarImportStep: React.FC<MassarImportStepProps> = ({
                 <button
                   key={tab.id}
                   type="button"
-                  onClick={() => setFilterMode(tab.id)}
+                  onClick={() => {
+                    setFilterMode(tab.id);
+                    setSelectedBracketId(null);
+                  }}
                   className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                     filterMode === tab.id
                       ? tab.id === 'unscored'

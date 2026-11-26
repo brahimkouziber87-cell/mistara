@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Activity,
   CheckCircle2,
@@ -564,7 +565,16 @@ export const AnalyticsSummaryExportModal: React.FC<
     }
   }, [handleDownloadPdf, handleDownloadPng, initialAutoExport, isOpen]);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen || typeof document === 'undefined') return null;
 
   // --- SVG GEOMETRY FOR CHART 1: GAUSSIAN CURVE ---
   const gaussSvgW = 540;
@@ -658,14 +668,17 @@ export const AnalyticsSummaryExportModal: React.FC<
   const aYAvg = (avg: number) => aPadT + aPlotH - (Math.min(20, Math.max(0, avg)) / 20) * aPlotH;
   const aYPct = (pct: number) => aPadT + aPlotH - (Math.min(100, Math.max(0, pct)) / 100) * aPlotH;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-3 sm:p-5 backdrop-blur-xs overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-3 sm:p-5 backdrop-blur-xs"
       role="dialog"
       aria-modal="true"
       aria-label="تصدير ملخص التحليلات البيانية للمجلس التعليمي"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
-      <div className="relative flex max-h-[94vh] w-full max-w-6xl flex-col rounded-2xl border border-slate-200 bg-slate-100 shadow-2xl overflow-hidden">
+      <div className="relative flex max-h-[92vh] w-full max-w-6xl flex-col rounded-2xl border border-slate-200 bg-slate-100 shadow-2xl overflow-hidden">
         {/* Top Modal Action Bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-5 py-3.5">
           <div className="flex items-center gap-2.5">
@@ -1585,6 +1598,7 @@ export const AnalyticsSummaryExportModal: React.FC<
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

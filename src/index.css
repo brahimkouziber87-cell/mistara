@@ -98,7 +98,7 @@
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
@@ -174,11 +174,13 @@
     transform: none !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
+    break-after: page !important;
+    page-break-after: always !important;
   }
 
-  .report-sheet + .report-sheet {
-    break-before: page !important;
-    page-break-before: always !important;
+  .report-sheet:last-of-type {
+    break-after: auto !important;
+    page-break-after: auto !important;
   }
 
   table {

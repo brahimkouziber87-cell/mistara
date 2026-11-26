@@ -1107,7 +1107,7 @@ export const ReportPreviewStep: React.FC<ReportPreviewStepProps> = ({
       >
         <div
           ref={reportContainerRef}
-          className="report-zoom-wrapper origin-top transition-transform [&>.space-y-8>.report-sheet]:shadow-[0_8px_30px_rgba(15,23,42,0.10)]"
+          className="report-zoom-wrapper mx-auto w-max min-w-full origin-top transition-transform [&>.space-y-8>.report-sheet]:shadow-[0_8px_30px_rgba(15,23,42,0.10)]"
           style={{ transform: `scale(${zoom})` }}
         >
           <ReportDocument
